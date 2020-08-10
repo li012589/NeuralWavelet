@@ -15,3 +15,4 @@ from .intTool import timeEvolve, buildSource
 from .dihedralAngle import alanineDipeptidePhiPsi
 from .measureMomentum import measureM
 from .slerp import np_slerp, slerp
+from .rounding import roundingWidentityGradient

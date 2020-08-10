@@ -15,8 +15,9 @@ import utils
 
 def test_ScalingNshifting():
     p = source.Gaussian([2, 2])
-
-    f = flow.ScalingNshifting(0.5, 0.4)
+    s = float(np.random.randint(1, 11))
+    t = float(np.random.randint(0, 11))
+    f = flow.ScalingNshifting(s, t)
     f.prior = p
 
     bijective(f)
@@ -24,11 +25,15 @@ def test_ScalingNshifting():
 def test_ScalingNshifting_saveload():
     p = source.Gaussian([2, 2])
 
-    f = flow.ScalingNshifting(0.5, 0.4)
+    s = float(np.random.randint(1, 11))
+    t = float(np.random.randint(0, 11))
+    f = flow.ScalingNshifting(s, t)
     f.prior = p
 
     pp = source.Gaussian([2, 2])
-    blankf = flow.ScalingNshifting(15.1, 4.1)
+    s = float(np.random.randint(1, 11))
+    t = float(np.random.randint(0, 11))
+    blankf = flow.ScalingNshifting(s, t)
     blankf.prior = pp
 
     saveload(f, blankf)
