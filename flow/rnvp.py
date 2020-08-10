@@ -26,7 +26,7 @@ class RNVP(Flow):
             for _ in y.shape[1:]:
                 s = s.sum(dim=-1)
             inverseLogjac += s
-        return y,inverseLogjac
+        return y, inverseLogjac
 
     def forward(self,z):
         forwardLogjac = z.new_zeros(z.shape[0])
@@ -38,4 +38,4 @@ class RNVP(Flow):
             for _ in z.shape[1:]:
                 s = s.sum(dim=-1)
             forwardLogjac -= s
-        return z,forwardLogjac
+        return z, forwardLogjac
