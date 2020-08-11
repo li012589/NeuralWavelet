@@ -9,7 +9,7 @@ class ScalingNshifting(Flow):
         self.scaling = nn.Parameter(torch.tensor(scaling), requires_grad=False)
         self.shifting = nn.Parameter(torch.tensor(shifting), requires_grad=False)
 
-    def inverse(self, y):
+    def inverse(self, y): # to decimal
         return (y + self.shifting) * (1 / self.scaling), y.new_zeros(y.shape[0])
 
     def forward(self, z):
