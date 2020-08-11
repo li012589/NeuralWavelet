@@ -29,3 +29,17 @@ def expmv(q,v,rtol=1e-3,maxStep=15):
         if i > maxStep:
             break
     return accumulator
+
+
+def log_min_exp(a, b, epsilon=1e-8):
+    """
+    Computes the log of exp(a) - exp(b) in a (more) numerically stable fashion.
+    Using:
+     log(exp(a) - exp(b))
+     c + log(exp(a-c) - exp(b-c))
+     a + log(1 - exp(b-a))
+    And note that we assume b < a always.
+    """
+    y = a + torch.log(1 - torch.exp(b - a) + epsilon)
+
+    return y

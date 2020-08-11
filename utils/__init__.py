@@ -1,7 +1,7 @@
 from .mc import *
 from .roll import roll
 from .layers import *
-from .expm import expm,expmv
+from .exp import expm,expmv, log_min_exp
 from .matrixGrad import jacobian, hessian, laplacian, netJacobian,netHessian,netLaplacian, jacobianDiag, laplacianHutchinson
 from .layerList import inverseThoughList
 from .symplecticTools import J,MTJM,assertMTJM
