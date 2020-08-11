@@ -12,5 +12,11 @@ class ScalingNshifting(Flow):
     def inverse(self, y): # to decimal
         return (y + self.shifting) * (1 / self.scaling), y.new_zeros(y.shape[0])
 
+    def inverse_(self, y):
+        return (y + self.shifting) * (1 / self.scaling)
+
     def forward(self, z):
         return z * (self.scaling) - self.shifting, z.new_zeros(z.shape[0])
+
+    def forward_(self, z):
+        return z * (self.scaling) - self.shifting

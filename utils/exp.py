@@ -31,7 +31,7 @@ def expmv(q,v,rtol=1e-3,maxStep=15):
     return accumulator
 
 
-def log_min_exp(a, b, epsilon=1e-8):
+def logMinExp(a, b, epsilon=1e-8):
     """
     Computes the log of exp(a) - exp(b) in a (more) numerically stable fashion.
     Using:

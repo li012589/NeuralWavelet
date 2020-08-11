@@ -1,7 +1,7 @@
 from .mc import *
 from .roll import roll
 from .layers import *
-from .exp import expm,expmv, log_min_exp
+from .exp import expm,expmv, logMinExp
 from .matrixGrad import jacobian, hessian, laplacian, netJacobian,netHessian,netLaplacian, jacobianDiag, laplacianHutchinson
 from .layerList import inverseThoughList
 from .symplecticTools import J,MTJM,assertMTJM
@@ -16,3 +16,4 @@ from .dihedralAngle import alanineDipeptidePhiPsi
 from .measureMomentum import measureM
 from .slerp import np_slerp, slerp
 from .rounding import roundingWidentityGradient
+from .distributions import *

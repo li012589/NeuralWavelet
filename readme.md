@@ -2,10 +2,14 @@
 
 ## TODO
 
-- fix tests
-
 - flow/discreteRNVP.py  ------ test/test_discrete.py
 
-- source/discreteLogit.py ----- test/test_discreteLogit.py
+- source/discreteLogistic.py ----- test/test_discreteLogistic.py
+
+- CDF w/ encoder needs
+
+- Encoder ----- test
+
+- Flow.inverse/fowrad -> inverseWp/forwardWp
 
   
