@@ -280,7 +280,7 @@ def test_sampleMixDiscreteLogistic():
 
     fmean = f.reshape(-1, 32).mean(0)
     Emean = torch.sum(mean.permute(torch.arange(len(mean.shape)).roll(-1).tolist()) * parts, dim=-1).numpy()
-    assert max(abs(fmean -Emean)) < 2.0
+    assert max(abs(fmean - Emean)) < 2.0
 
     '''
     import pdb
