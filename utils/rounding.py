@@ -1,7 +1,7 @@
 import torch
 
 
-class roundingWidentityGradient(torch.autograd.Function):
+class RoundingWidentityGradient(torch.autograd.Function):
     def __init__(self):
         super().__init__()
 
@@ -13,3 +13,6 @@ class roundingWidentityGradient(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         return grad_output.clone()
+
+
+roundingWidentityGradient = RoundingWidentityGradient.apply

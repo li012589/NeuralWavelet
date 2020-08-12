@@ -9,8 +9,8 @@ from utils import roundingWidentityGradient
 
 def test_roundingWidentityGradient():
 
-    rounding = roundingWidentityGradient()
-    test = (torch.arange(0, 10).to(torch.float)) / 10
+    rounding = roundingWidentityGradient
+    test = rounding((torch.arange(0, 10).to(torch.float)) / 10)
     test.requires_grad_()
     L = test.sum()
     L.backward()

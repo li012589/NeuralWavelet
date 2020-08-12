@@ -66,6 +66,7 @@ def test_sampleLogistic():
 
 def test_logDiscreteLogistic():
     shape = [100, 3, 32, 32]
+
     # test compute probability of a image of size [100 ,3, 32, 32] from a single distribution
     a = logDiscreteLogistic(torch.randint(255, shape), torch.randint(255, [1]) + torch.randn(1), torch.randn([32])).detach().numpy()
     assert (np.exp(a) > 1).sum() == 0
@@ -93,6 +94,7 @@ def test_logDiscreteLogistic():
     # batch channel is same, random check
     for _ in range(10):
         (a[int(torch.randint(100, [1])), int(torch.randint(3, [1])), :, :] == a[int(torch.randint(100, [1])), int(torch.randint(3, [1])), :, :]).sum() == 32 * 32
+
 
     # test decimal
     decimal = ScalingNshifting(scaling=255.0, shifting=-128.0)
@@ -338,11 +340,12 @@ def test_sampleMixDiscreteLogistic():
 
 
 if __name__ == "__main__":
+    test_sampleDiscreteLogistic()
     '''
+    test_logDiscreteLogistic()
     test_logLogistic()
     test_sampleLogistic()
     test_sampleDiscreteLogistic()
-    test_sampleDiscreteLogistic()
     test_logMixDiscreteLogistic()
-    '''
     test_sampleMixDiscreteLogistic()
+    '''

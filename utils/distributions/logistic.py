@@ -29,7 +29,7 @@ def logDiscreteLogistic(x, mean, logscale, decimal=None, test=True, testBroadcas
     return logMinExp(F.logsigmoid(uplus), F.logsigmoid(uminus))
 
 
-def sampleDiscreteLogistic(size, mean, logscale, rounding=torch.round, decimal=None, testBroadcastSize=False, eps=1e-8):
+def sampleDiscreteLogistic(size, mean, logscale, rounding=torch.round, decimal=None, testBroadcastSize=False, eps=1e-19):
     mean, logscale = broadcastSize(size, [mean, logscale], testBroadcastSize)
     x = sampleLogistic(size, mean, logscale, testBroadcastSize, eps)
     if decimal is None:

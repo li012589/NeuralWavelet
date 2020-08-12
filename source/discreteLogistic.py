@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import numpy as np
-from utils import log_min_exp
+from utils import logDiscreteLogistic, sampleDiscreteLogistic, logMixDiscreteLogistic, sampleMixDiscreteLogistic
 import torch.nn.functional as F
 
 from .source import Source
@@ -12,9 +12,9 @@ class DiscreteLogistic(Source):
         super(DiscreteLogistic, self).__init__(nvars, K, name)
 
         if mean is None:
-            mean = torch.zeros(1)
+            mean = torch.zeros(nvars)
         if logscale is None:
-            logscale = torch.zeros(1)
+            logscale = torch.zeros(nvars)
 
         # if want each dimension is trainable, just pass high dimensional mean and logscale
         self.mean = nn.Parameter(mean, requires_grad=train)
@@ -24,26 +24,22 @@ class DiscreteLogistic(Source):
         self.rounding = rounding
 
     def sample(self, batchSize, K=None):
-        y = torch.randn(batchSize + self.nvars).to(self.mean)
-        x = torch.exp(self.logscale) * torch.log(y / (1 - y)) + self.mean
-        return self.rounding(self.decimal.forward(x))
+        return sampleDiscreteLogistic([batchSize] + self.nvars, self.mean, self.logscale, rounding=self.rounding, decimal=self.decimal)
 
     def _energy(self, z):
-        uplus = (self.decimal.inverse(z + 0.5) - self.mean) / torch.exp(self.logscale)
-        uminus = (self.decimal.inverse(z - 0.5) - self.mean) / torch.exp(self.logscale)
-        return log_min_exp(F.logsigmoid(uplus), F.logsigmoid(uminus))
+        return -logDiscreteLogistic(z, self.mean, self.logscale, decimal=self.decimal).reshape(z.shape[0], -1).sum(-1)
 
 
 class MixtureDiscreteLogistic(Source):
     def __init__(self, nvars, nMixing, decimal, rounding, K=1.0, mean=None, logscale=None, train=True, name="mixtureDiscreteLogistic"):
         super(MixtureDiscreteLogistic, self).__init__(nvars, K, name)
         self.nMixing = nMixing
-        self.mixing = nn.Parameter(torch.ones(nMixing) / nMixing, requires_grad=False)
+        self.mixing = nn.Parameter(torch.softmax(torch.ones(nvars + [nMixing]), dim=-1), requires_grad=False)
 
         if mean is None:
-            mean = torch.zeros([1] * (len(nvars) + 1) + [nMixing])
+            mean = torch.zeros([nMixing] + nvars)
         if logscale is None:
-            logscale = torch.zeros([1] * (len(nvars) + 1) + [nMixing])
+            logscale = torch.zeros([nMixing] + nvars)
 
         self.mean = nn.Parameter(mean, requires_grad=train)
         self.logscale = nn.Parameter(logscale, requires_grad=train)
@@ -52,10 +48,9 @@ class MixtureDiscreteLogistic(Source):
         self.rounding = rounding
 
     def sample(self, batchSize, K=None):
-        pass
+        return sampleMixDiscreteLogistic([batchSize] + self.nvars, self.mean, self.logscale, self.mixing, rounding=self.rounding, decimal=self.decimal)
 
     def _energy(self, z):
-        z = z.view(*z.shape, 1)
-        uplus = (self.decimal.inverse(z + 0.5) - self.mean) / torch.exp(self.logscale)
-        uminus = (self.decimal.inverse(z - 0.5) - self.mean) / torch.exp(self.logscale)
-        
+        return -logMixDiscreteLogistic(z, self.mean, self.logscale, self.mixing, decimal=self.decimal).reshape(z.shape[0], -1).sum(-1)
+
+
