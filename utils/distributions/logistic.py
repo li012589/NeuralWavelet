@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+import numpy as np
 from utils import logMinExp
 from .etc import broadcastSize, selectArgs
 
@@ -18,7 +19,7 @@ def sampleLogistic(size, mean, logscale, testBroadcastSize=False, eps=1e-19):
 
 def logDiscreteLogistic(x, mean, logscale, decimal=None, test=True, testBroadcastSize=False):
     if test:
-        assert torch.sum(x.int() - x) == 0
+        assert np.all(np.equal(np.mod(x.detach().numpy(), 1), 0))
     mean, logscale = broadcastSize(x.shape, [mean, logscale], testBroadcastSize)
     if decimal is None:
         uplus = ((x + 0.5) - mean) / torch.exp(logscale)
@@ -46,7 +47,7 @@ def logMixDiscreteLogistic(x, mean, logscale, parts, decimal=None, test=True, ep
     assert mean.shape[0] == parts.shape[-1]
     assert logscale.shape[0] == parts.shape[-1]
     if test:
-        assert torch.sum(x.int() - x) == 0
+        assert np.all(np.equal(np.mod(x.detach().numpy(), 1), 0))
     mean, logscale = mean.permute(torch.arange(len(mean.shape)).roll(-1).tolist()), logscale.permute(torch.arange(len(mean.shape)).roll(-1).tolist())
     x = x.view(*x.shape, 1)
     mean, logscale, parts = broadcastSize(x.shape, [mean, logscale, parts], test=False)
