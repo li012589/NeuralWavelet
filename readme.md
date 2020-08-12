@@ -2,9 +2,7 @@
 
 ## TODO
 
-- flow/discreteRNVP.py  ------ test/test_discrete.py
-
-- source/discreteLogistic.py ----- test/test_discreteLogistic.py
+- Reverse decimal inter outer
 
 - CDF w/ encoder needs
 
