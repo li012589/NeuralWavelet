@@ -4,10 +4,12 @@
 
 - Reverse decimal inter outer
 
+- MERA ----- test
+
 - CDF w/ encoder needs
 
 - Encoder ----- test
 
-- Flow.inverse/fowrad -> inverseWp/forwardWp
-
+  
+  
   
