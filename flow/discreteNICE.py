@@ -3,6 +3,7 @@ from torch import nn
 from numpy.testing import assert_array_equal
 from .flow import Flow
 
+
 class DiscreteNICE(Flow):
     def __init__(self, maskList, tList, decimal, rounding, prior=None, name="DiscreteNICE"):
         super(DiscreteNICE, self).__init__(prior, name)
@@ -16,7 +17,7 @@ class DiscreteNICE(Flow):
         self.decimal = decimal
         self.rounding = rounding
 
-    def inverse(self, y, rounding=True):
+    def inverse(self, y):
         inverseLogjac = y.new_zeros(y.shape[0])
         for i in range(len(self.tList)):
             maskR = (1 - self.maskList[i]).bool()
@@ -31,7 +32,7 @@ class DiscreteNICE(Flow):
             y = y.masked_scatter(mask, yA).contiguous()
         return y, inverseLogjac
 
-    def forward(self, z, rounding=True):
+    def forward(self, z):
         forwardLogjac = z.new_zeros(z.shape[0])
         for i in reversed(range(len(self.tList))):
             maskR = (1 - self.maskList[i]).bool()
