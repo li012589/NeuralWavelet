@@ -1,7 +1,7 @@
 import math
 
 from .template import HierarchyBijector
-from .im2col import getIndeices
+from utils import getIndeices
 
 
 class MERA(HierarchyBijector):
@@ -12,6 +12,7 @@ class MERA(HierarchyBijector):
             depth = int(math.log(length, kernelSize))
 
         indexList = []
+
         for no in range(depth):
             indexList.append(getIndeices(shape, kernelSize, kernelSize, kernelSize * (kernelSize**no), kernelSize**no, 0))
             for i in range(repeat):
@@ -23,6 +24,7 @@ class MERA(HierarchyBijector):
         indexIList = [item[0] for item in indexList]
         indexJList = [item[1] for item in indexList]
 
+        # to share parameters along RG direction, pass a shorter layerList
         if len(layerList) == repeat + 1:
             layerList = layerList * depth
 

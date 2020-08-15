@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 from ..flow import Flow
-from .im2col import dispatch, collect
+from utils import dispatch, collect
 
 
 class HierarchyBijector(Flow):

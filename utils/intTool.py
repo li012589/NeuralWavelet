@@ -1,5 +1,5 @@
 from utils import stormerVerlet as _stormerVerlet
-import flow
+from flow import FlowNet
 import torch
 
 def stormerVerlet(eta,*args):
