@@ -4,7 +4,7 @@
 
 - Reverse decimal inter outer
 
-- hierarchy prior
+- train
 
 - CDF w/ encoder needs
 
