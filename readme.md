@@ -4,7 +4,7 @@
 
 - Reverse decimal inter outer
 
-- MERA ----- test
+- hierarchy prior
 
 - CDF w/ encoder needs
 
