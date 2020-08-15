@@ -15,7 +15,7 @@ import utils
 
 def test_bijective():
     decimal = flow.ScalingNshifting(256, -128)
-    p = source.DiscreteLogistic([3, 4, 4], decimal, utils.roundingWidentityGradient)
+    p = source.DiscreteLogistic([3, 8, 8], decimal, utils.roundingWidentityGradient)
 
     repeat = 2
     layerList = []
@@ -32,7 +32,7 @@ def test_bijective():
         f = flow.DiscreteNICE(maskList, tList, decimal, utils.roundingWidentityGradient, p)
         layerList.append(f)
 
-    t = flow.MERA(2, 4, layerList, repeat, prior=p)
+    t = flow.MERA(2, 8, layerList, repeat, prior=p)
 
     bijective(t)
 
@@ -41,8 +41,7 @@ def test_bijective():
 
     repeat = 3
     layerList = []
-    for c in range(repeat + 1):
-        print(c)
+    for _ in range(repeat + 1):
         maskList = []
         for n in range(4):
             if n % 2 == 0:
