@@ -5,10 +5,11 @@ from .im2col import getIndeices
 
 
 class MERA(HierarchyBijector):
-    def __init__(self, kernelDim, length, layerList, repeat=1, prior=None, name="MERA"):
+    def __init__(self, kernelDim, length, layerList, repeat=1, depth=None, prior=None, name="MERA"):
         kernelSize = 2
         shape = [length, length]
-        depth = int(math.log(length, kernelSize))
+        if depth is None:
+            depth = int(math.log(length, kernelSize))
 
         indexList = []
         for no in range(depth):
@@ -24,8 +25,8 @@ class MERA(HierarchyBijector):
 
         if len(layerList) == repeat + 1:
             layerList = layerList * depth
-        else:
-            assert layerList == len(indexIList)
+
+        assert len(layerList) == len(indexIList)
 
         if kernelDim == 2:
             kernelShape = [kernelSize, kernelSize]
