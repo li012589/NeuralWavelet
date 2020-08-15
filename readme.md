@@ -6,9 +6,13 @@
 
 - train
 
+- Main-- train
+
 - CDF w/ encoder needs
 
 - Encoder ----- test
+
+- Main-- encode
 
   
   
