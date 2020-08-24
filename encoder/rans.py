@@ -61,10 +61,10 @@ def pop_symbol(statfun, precision):
 
 def flatten(x):
     """Flatten a rans state x into a 1d numpy array."""
-    out, x = [x[0] >> 32, x[0]], x[1]
+    out, x = [np.uint32(x[0] >> 32), np.uint32(x[0])], x[1]
     while x:
         x_head, x = x
-        out.append(x_head)
+        out.append(np.uint32(x_head))
     return np.asarray(out, dtype=np.uint32)
 
 def unflatten(arr):
