@@ -10,8 +10,6 @@
 
 - CDF w/ encoder needs
 
-- Encoder ----- test
-
 - Main-- encode
 
   
