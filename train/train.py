@@ -23,8 +23,6 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
     bestTestLoss = 99999999
     for e in range(epoches):
 
-        scheduler.step()
-
         # train
         trainLoss = []
         t_start = time.time()
@@ -48,6 +46,9 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
             testLoss.append(_loss.detach().item())
         testLoss = np.array(testLoss)
         LOSS.append(testLoss.mean())
+
+        # step the optimizer scheduler
+        scheduler.step()
 
         # feedback
         print("Train time:", trainTime)
