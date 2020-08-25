@@ -2,7 +2,7 @@
 
 ## TODO
 
-- Reverse decimal inter outer
+- % Reverse decimal inter outer
 
 - train
 
