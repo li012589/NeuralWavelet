@@ -29,7 +29,7 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
         for samples, _ in trainLoader:
             lossRaw = -flow.logProbability(samples)
             _loss = lossRaw.mean()
-            trainLoss.append(_loss.detach().item())
+            trainLoss.append(_loss.detach().cpu().item())
 
             flow.zero_grad()
             _loss.backward()
@@ -43,7 +43,7 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
         for samples, _ in testLoader:
             lossRaw = -flow.logProbability(samples)
             _loss = lossRaw.mean()
-            testLoss.append(_loss.detach().item())
+            testLoss.append(_loss.detach().cpu().item())
         testLoss = np.array(testLoss)
         LOSS.append(testLoss.mean())
 
