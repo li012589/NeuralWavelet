@@ -3,12 +3,13 @@ import numpy as np
 import utils
 
 
-def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolder, eps=1.e-7, warmup=10, lr_decay=0.999, plotfn=None):
+def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolder, device, eps=1.e-7, warmup=10, lr_decay=0.999, plotfn=None):
     params = list(flow.parameters())
     params = list(filter(lambda p: p.requires_grad, params))
     nparams = sum([np.prod(p.size()) for p in params])
 
     print('total nubmer of trainable parameters:', nparams)
+
 
     # Building gadget for optim
     def lr_lambda(epoch):
@@ -21,12 +22,15 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
     VALLOSS = []
     bestTrainLoss = 99999999
     bestTestLoss = 99999999
+
     for e in range(epoches):
+        print(" Training "+str(e+1)+"-th epoch")
 
         # train
         trainLoss = []
         t_start = time.time()
         for samples, _ in trainLoader:
+            samples = samples.to(device)
             lossRaw = -flow.logProbability(samples)
             _loss = lossRaw.mean()
             trainLoss.append(_loss.detach().cpu().item())
@@ -41,6 +45,7 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
         # vaildation
         testLoss = []
         for samples, _ in testLoader:
+            samples = samples.to(device)
             lossRaw = -flow.logProbability(samples)
             _loss = lossRaw.mean()
             testLoss.append(_loss.detach().cpu().item())

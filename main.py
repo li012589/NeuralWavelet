@@ -101,10 +101,10 @@ _length = int((blockLength * blockLength) / 4)
 for n in range(int(math.log(blockLength, 2))):
     if n != (int(math.log(blockLength, 2))) - 1:
         # intermedia variable prior, 3 here means the left 3 variable
-        priorList.append(source.DiscreteLogistic([channel, _length, 3], decimal, rounding))
+        priorList.append(source.DiscreteLogistic([channel, _length, 3], decimal, rounding).to(device))
     else:
         # final variable prior, all 4 variable
-        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding))
+        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding).to(device))
     _length = int(_length / 4)
 
 # Building the hierarchy prior
@@ -132,7 +132,7 @@ for _ in range(repeat + 1):
     layerList.append(flow.DiscreteNICE(maskList, tList, decimal, rounding))
 
 # Building MERA model
-f = flow.MERA(dimensional, blockLength, layerList, repeat, depth=depth, prior=p)
+f = flow.MERA(dimensional, blockLength, layerList, repeat, depth=depth, prior=p).to(device)
 
 
 # Define plot function
@@ -142,21 +142,21 @@ def plotfn(f, train, test, LOSS, VALLOSS):
     lossax = lossfig.add_subplot(111)
 
     epoch = len(LOSS)
-
     lossax.plot(np.arange(epoch), np.array(LOSS), 'go-', label="loss")
+    epoch = len(VALLOSS)
     lossax.plot(np.arange(epoch), np.array(VALLOSS), 'ro-', label="val. loss")
 
     lossax.set_xlim(0, epoch)
     lossax.legend()
     lossax.set_title("Loss Curve")
-    plt.save(rootFolder + 'pic/lossCurve.png', bbox_inches="tight", pad_inches=0)
+    plt.savefig(rootFolder + 'pic/lossCurve.png', bbox_inches="tight", pad_inches=0)
     plt.close()
 
     # TODO: wavelet plot, Fig. 3 in draft
 
 
 # Training
-f = train.forwardKLD(f, targetTrainLoader, targetTestLoader, epoch, lr, savePeriod, rootFolder, plotfn=plotfn)
+f = train.forwardKLD(f, targetTrainLoader, targetTestLoader, epoch, lr, savePeriod, rootFolder, device, plotfn=plotfn)
 
 # Pasuse
 import pdb
