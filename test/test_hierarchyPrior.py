@@ -48,5 +48,31 @@ def test_hierarchyPrior():
     assert logp == -(16 * 3 * 2**1 + 4 * 3 * 2**2 + 1 * 4 * 2**3)
 
 
+def test_grad():
+    length = 8
+    channel = 3
+    decimal = flow.ScalingNshifting(256, -128)
+    p1 = source.DiscreteLogistic([channel, 16, 3], decimal, rounding=utils.roundingWidentityGradient)
+    p2 = source.DiscreteLogistic([channel, 4, 3], decimal, rounding=utils.roundingWidentityGradient)
+    p3 = source.MixtureDiscreteLogistic([channel, 1, 4], 5, decimal, rounding=utils.roundingWidentityGradient)
+
+    P = source.HierarchyPrior(channel, length, [p1, p2, p3])
+
+    x = P.sample(100)
+    logp = P.logProbability(x)
+    L = logp.mean()
+    L.backward()
+
+    assert p1.mean.grad.sum().detach().item() != 0
+    assert p2.mean.grad.sum().detach().item() != 0
+    assert p3.mean.grad.sum().detach().item() != 0
+
+    assert p1.logscale.grad.sum().detach().item() != 0
+    assert p2.logscale.grad.sum().detach().item() != 0
+    assert p3.logscale.grad.sum().detach().item() != 0
+
+    assert p3.mixing.grad.sum().detach().item() != 0
+
+
 if __name__ == "__main__":
-    test_hierarchyPrior()
+    test_grad()

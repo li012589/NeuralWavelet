@@ -34,7 +34,7 @@ class MixtureDiscreteLogistic(Source):
     def __init__(self, nvars, nMixing, decimal, rounding, K=1.0, mean=None, logscale=None, train=True, name="mixtureDiscreteLogistic"):
         super(MixtureDiscreteLogistic, self).__init__(nvars, K, name)
         self.nMixing = nMixing
-        self.mixing = nn.Parameter(torch.softmax(torch.randn(nvars + [nMixing]), dim=-1), requires_grad=False)
+        self.mixing = nn.Parameter(torch.softmax(torch.randn(nvars + [nMixing]), dim=-1), requires_grad=train)
 
         if mean is None:
             mean = torch.zeros([nMixing] + nvars)
