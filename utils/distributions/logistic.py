@@ -46,6 +46,10 @@ def logMixDiscreteLogistic(x, mean, logscale, parts, decimal=None, test=True, ep
     '''
     assert mean.shape[0] == parts.shape[-1]
     assert logscale.shape[0] == parts.shape[-1]
+    parts = torch.softmax(parts, dim=-1)
+
+    #assert parts.sum() == 1 * np.prod(parts.shape[:-1])
+
     if test:
         assert np.all(np.equal(np.mod(x.cpu().detach().numpy(), 1), 0))
     mean, logscale = mean.permute(torch.arange(len(mean.shape)).roll(-1).tolist()), logscale.permute(torch.arange(len(mean.shape)).roll(-1).tolist())
