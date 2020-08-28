@@ -24,7 +24,7 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
     bestTestLoss = 99999999
 
     for e in range(epoches):
-        print(" Training "+str(e+1)+"-th epoch")
+        print(" Training " + str(e + 1) + "-th epoch")
 
         # train
         trainLoss = []
@@ -33,11 +33,12 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
             samples = samples.to(device)
             lossRaw = -flow.logProbability(samples)
             _loss = lossRaw.mean()
-            trainLoss.append(_loss.detach().cpu().item())
 
-            flow.zero_grad()
+            optimizer.zero_grad()
             _loss.backward()
             optimizer.step()
+
+            trainLoss.append(_loss.detach().cpu().item())
         trainLoss = np.array(trainLoss)
         trainTime = time.time() - t_start
         LOSS.append(trainLoss.mean())
