@@ -155,7 +155,7 @@ def plotfn(f, train, test, LOSS, VALLOSS):
 
 
 # Training
-f = train.forwardKLD(f, targetTrainLoader, targetTestLoader, epoch, lr, savePeriod, rootFolder, device, targetSize, plotfn=plotfn)
+f = train.forwardKLD(f, targetTrainLoader, targetTestLoader, epoch, lr, savePeriod, rootFolder, device, plotfn=plotfn)
 
 # Pasuse
 import pdb

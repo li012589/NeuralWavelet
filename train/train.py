@@ -3,13 +3,13 @@ import numpy as np
 import utils
 
 
-def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolder, device, targetSize, eps=1.e-7, warmup=10, lr_decay=0.999, plotfn=None):
+
+def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolder, device, eps=1.e-7, warmup=10, lr_decay=0.999, plotfn=None):
     params = list(flow.parameters())
     params = list(filter(lambda p: p.requires_grad, params))
     nparams = sum([np.prod(p.size()) for p in params])
 
     print('total nubmer of trainable parameters:', nparams)
-
 
     # Building gadget for optim
     def lr_lambda(epoch):
@@ -19,7 +19,8 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
     #optimizer = torch.optim.Adam(params, lr=lr, weight_decay=weight_decay)
 
     LOSS = []
-    BPD = []
+    trainBPD = []
+    testBPD = []
     VALLOSS = []
     bestTrainLoss = 99999999
     bestTestLoss = 99999999
@@ -43,8 +44,8 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
         trainLoss = np.array(trainLoss)
         trainTime = time.time() - t_start
         LOSS.append(trainLoss.mean())
-        meanTrainBpd = trainLoss.mean() / (np.prod(targetSize) * np.log(2.))
-        BPD.append(meanTrainBpd)
+        meanTrainBpd = trainLoss.mean() / (np.prod(samples.shape[1:]) * np.log(2.))
+        trainBPD.append(meanTrainBpd)
 
         # vaildation
         testLoss = []
@@ -55,8 +56,8 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
             testLoss.append(_loss.detach().cpu().item())
         testLoss = np.array(testLoss)
         VALLOSS.append(testLoss.mean())
-        meanTestBpd = testLoss.mean() / (np.prod(targetSize) * np.log(2.))
-        BPD.append(meanTestBpd)
+        meanTestBpd = testLoss.mean() / (np.prod(samples.shape[1:]) * np.log(2.))
+        testBPD.append(meanTestBpd)
 
 
         # step the optimizer scheduler
@@ -66,7 +67,8 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
         print("Train time:", trainTime)
         print("Mean train loss:", trainLoss.mean(), "Mean vaildation loss:", testLoss.mean())
         print("Mean train bpd:", meanTrainBpd, "Mean vaildation bpd:", meanTestBpd)
-        print("Best train loss:", trainLoss.min(), "Best vaildation loss:", testLoss.min())
+        print("Best train loss:", min(LOSS), "Best vaildation loss:", min(VALLOSS))
+        print("Best train bdp:", min(trainBPD), "Best vaildation loss:", min(testBPD))
         print("====================================================================")
 
         # save
