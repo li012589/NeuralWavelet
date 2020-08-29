@@ -143,7 +143,7 @@ def plotfn(f, train, test, LOSS, VALLOSS):
 
     epoch = len(LOSS)
     lossax.plot(np.arange(epoch), np.array(LOSS), 'go-', label="loss")
-    # lossax.plot(np.arange(epoch), np.array(VALLOSS), 'ro-', label="val. loss")
+    lossax.plot(np.arange(epoch), np.array(VALLOSS), 'ro-', label="val. loss")
 
     lossax.set_xlim(0, epoch)
     lossax.legend()

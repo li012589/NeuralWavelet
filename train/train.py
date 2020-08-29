@@ -42,7 +42,7 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
             trainLoss.append(_loss.detach().cpu().item())
         trainLoss = np.array(trainLoss)
         trainTime = time.time() - t_start
-        # LOSS.append(trainLoss.mean())
+        LOSS.append(trainLoss.mean())
         meanTrainBpd = trainLoss.mean() / (np.prod(targetSize) * np.log(2.))
         BPD.append(meanTrainBpd)
 
@@ -54,7 +54,7 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
             _loss = lossRaw.mean()
             testLoss.append(_loss.detach().cpu().item())
         testLoss = np.array(testLoss)
-        LOSS.append(testLoss.mean())
+        VALLOSS.append(testLoss.mean())
         meanTestBpd = testLoss.mean() / (np.prod(targetSize) * np.log(2.))
         BPD.append(meanTestBpd)
 
@@ -67,6 +67,7 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
         print("Mean train loss:", trainLoss.mean(), "Mean vaildation loss:", testLoss.mean())
         print("Mean train bpd:", meanTrainBpd, "Mean vaildation bpd:", meanTestBpd)
         print("Best train loss:", trainLoss.min(), "Best vaildation loss:", testLoss.min())
+        print("====================================================================")
 
         # save
         if e % savePeriod == 0:
