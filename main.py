@@ -18,7 +18,7 @@ group.add_argument("-depth", type=int, default=-1, help="depth of hierarchy stru
 group.add_argument("-repeat", type=int, default=1, help="num of disentangler layers of each RG scale")
 group.add_argument("-nhidden", type=int, default=3, help="num of MLP layers inside NICE inside MERA")
 group.add_argument("-hdim", type=int, default=50, help="layer dimension of MLP inside NICE inside MERA")
-group.add_argument("-nNICE", type=int, default=2, help="num of NICE layers of each RG scale")
+group.add_argument("-nNICE", type=int, default=2, help="num of NICE layers of each RG scale (even number only)")
 group.add_argument("-nMixing", type=int, default=5, help="num of mixing distributions of last sub-priors")
 
 group = parser.add_argument_group('Learning  parameters')
@@ -143,8 +143,7 @@ def plotfn(f, train, test, LOSS, VALLOSS):
 
     epoch = len(LOSS)
     lossax.plot(np.arange(epoch), np.array(LOSS), 'go-', label="loss")
-    epoch = len(VALLOSS)
-    lossax.plot(np.arange(epoch), np.array(VALLOSS), 'ro-', label="val. loss")
+    # lossax.plot(np.arange(epoch), np.array(VALLOSS), 'ro-', label="val. loss")
 
     lossax.set_xlim(0, epoch)
     lossax.legend()
@@ -156,7 +155,7 @@ def plotfn(f, train, test, LOSS, VALLOSS):
 
 
 # Training
-f = train.forwardKLD(f, targetTrainLoader, targetTestLoader, epoch, lr, savePeriod, rootFolder, device, plotfn=plotfn)
+f = train.forwardKLD(f, targetTrainLoader, targetTestLoader, epoch, lr, savePeriod, rootFolder, device, targetSize, plotfn=plotfn)
 
 # Pasuse
 import pdb
