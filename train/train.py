@@ -74,8 +74,8 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
         # save
         if e % savePeriod == 0:
             torch.save(flow, rootFolder + 'savings/' + flow.name + "_epoch_" + str(e) + ".saving")
-            torch.save(optimizer, rootFolder + 'savings/' + flow.name + "_epoch_" + str(e) + "opt.saving")
-            with h5py.File(rootFolder + "records/" + "epoch_" + str(e) + '.hdf5', 'w') as f:
+            torch.save(optimizer, rootFolder + 'savings/' + flow.name + "_epoch_" + str(e) + "_opt.saving")
+            with h5py.File(rootFolder + "records/" + "LOSSES" + '.hdf5', 'w') as f:
                 f.create_dataset("LOSS", data=np.array(LOSS))
                 f.create_dataset("VALLOSS", data=np.array(VALLOSS))
 

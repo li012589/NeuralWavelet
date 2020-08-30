@@ -13,7 +13,10 @@ def createWorkSpace(path):
 
 def cleanSaving(path,epoch,keptEpoch,name):
     if epoch >= keptEpoch:
-        cmd =["rm","-rf",path+"savings/"+name+"Saving_epoch"+str(epoch-keptEpoch)+".saving"]
+        cmd =["rm","-rf",path+"savings/"+name+"_epoch_"+str(epoch-keptEpoch)+".saving"]
         subprocess.check_call(cmd)
-        cmd =["rm","-rf",path+"records/"+name+"Record_epoch"+str(epoch-keptEpoch)+".hdf5"]
+        cmd =["rm","-rf",path+"savings/"+name+"_epoch_"+str(epoch-keptEpoch)+"_opt.saving"]
         subprocess.check_call(cmd)
+
+        # cmd =["rm","-rf",path+"records/"+name+"Record_epoch"+str(epoch-keptEpoch)+".hdf5"]
+        # subprocess.check_call(cmd)
