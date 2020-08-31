@@ -134,6 +134,12 @@ for _ in range(repeat + 1):
 # Building MERA model
 f = flow.MERA(dimensional, blockLength, layerList, repeat, depth=depth, prior=p).to(device)
 
+# sanity check of f and it's prior
+for no in range(int(math.log(blockLength, 2))):
+    if no != int(math.log(blockLength, 2)) - 1:
+        np.testing.assert_allclose(f.indexI[(no + 1) * (repeat + 1) - 1][:, 1:], f.prior.factorOutIList[no])
+    else:
+        np.testing.assert_allclose(f.indexI[(no + 1) * (repeat + 1) - 1], f.prior.factorOutIList[no])
 
 # Define plot function
 def plotfn(f, train, test, LOSS, VALLOSS):
