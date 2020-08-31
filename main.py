@@ -108,7 +108,7 @@ for n in range(int(math.log(blockLength, 2))):
     _length = int(_length / 4)
 
 # Building the hierarchy prior
-p = source.HierarchyPrior(channel, blockLength, priorList)
+p = source.HierarchyPrior(channel, blockLength, priorList, repeat=repeat)
 
 # Building NICE model inside MERA
 assert nNICE % 2 == 0
@@ -151,7 +151,80 @@ def plotfn(f, train, test, LOSS, VALLOSS):
     plt.savefig(rootFolder + 'pic/lossCurve.png', bbox_inches="tight", pad_inches=0)
     plt.close()
 
-    # TODO: wavelet plot, Fig. 3 in draft
+    # wavelet plot, Fig. 3 in draft
+
+    # draw samples, same samples
+    samplesNum = 10
+    samples, _ = iter(train).next()
+    samples = samples[:samplesNum]
+
+    # build a shallow flow
+    _depth = 2
+    ftest = flow.MERA(dimensional, blockLength, f.layerList[:(_depth * (repeat + 1))], repeat, depth=_depth).to(device)
+
+    # do the transformations
+    z, _ = ftest.inverse(samples)
+
+    # collect parts
+    zparts = []
+    for no in range(_depth):
+        _, z_ = utils.dispatch(p.factorOutIList[no], p.factorOutJList[no], z)
+        zparts.append(z_)
+
+    # the inner upper left part
+    _, zremain = utils.dispatch(ftest.indexI[-1], ftest.indexJ[-1], z)
+    zremain = zremain[:, :, :, :1].reshape(*zremain.shape[:-2], 8, 8)
+
+    # define renorm fn
+    def back01(tensor):
+        ten = tensor.clone()
+        ten = ten.view(ten.shape[0], -1)
+        ten -= ten.min(1, keepdim=True)[0]
+        ten /= ten.max(1, keepdim=True)[0]
+        ten = ten.view(tensor.shape)
+        return ten
+
+    # norm the remain
+    zremain = back01(zremain)
+
+    # inner parts, order: upper right, down left, down right
+    parts1 = []
+    for no in range(3):
+        part = back01(zparts[1][:, :, :, no].reshape(*zremain.shape))
+        parts1.append(part)
+
+    # piece the inner up
+    zremain = torch.cat([zremain, parts1[0]], dim=-1)
+    tmp = torch.cat([parts1[1], parts1[2]], dim=-1)
+    zremain = torch.cat([zremain, tmp], dim=-2)
+
+    # out parts, order: upper right, down left, down right
+    parts2 = []
+    for no in range(3):
+        part = back01(zparts[0][:, :, :, no].reshape(*zremain.shape))
+        parts2.append(part)
+
+    # piece the outer up
+    zremain = torch.cat([zremain, parts2[0]], dim=-1)
+    tmp = torch.cat([parts2[1], parts2[2]], dim=-1)
+    zremain = torch.cat([zremain, tmp], dim=-2).permute([0, 2, 3, 1]).detach().cpu().numpy()
+
+    import pdb
+    pdb.set_trace()
+    samples = samples.to(torch.int).permute([0, 2, 3, 1]).detach().cpu().numpy()
+    for no in range(samplesNum):
+        waveletPlot = plt.figure(figsize=(8, 8))
+        waveletAx = waveletPlot.add_subplot(111)
+        waveletAx.imshow(zremain[no])
+        plt.savefig(rootFolder + 'pic/waveletPlot' + str(no) + '.png', bbox_inches="tight", pad_inches=0)
+        plt.close()
+        originalPlot = plt.figure(figsize=(8, 8))
+        originalAx = originalPlot.add_subplot(111)
+        originalAx.imshow(samples[no])
+        plt.savefig(rootFolder + 'pic/originalPlot' + str(no) + '.png', bbox_inches="tight", pad_inches=0)
+        plt.close()
+    import pdb
+    pdb.set_trace()
 
 
 # Training
