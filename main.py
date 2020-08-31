@@ -164,7 +164,7 @@ def plotfn(f, train, test, LOSS, VALLOSS):
     samples, _ = iter(train).next()
     samples = samples[:samplesNum].to(device)
 
-    # build a shallow flow
+    # build a shallow flow, change var _depth here wouldn't change how plot behave
     _depth = 2
     ftest = flow.MERA(dimensional, blockLength, f.layerList[:(_depth * (repeat + 1))], repeat, depth=_depth).to(device)
 
@@ -179,7 +179,8 @@ def plotfn(f, train, test, LOSS, VALLOSS):
 
     # the inner upper left part
     _, zremain = utils.dispatch(ftest.indexI[-1], ftest.indexJ[-1], z)
-    zremain = zremain[:, :, :, :1].reshape(*zremain.shape[:-2], 8, 8)
+    _linesize = np.sqrt(zremain.shape[-2]).astype(np.int)
+    zremain = zremain[:, :, :, :1].reshape(*zremain.shape[:-2], _linesize, _linesize)
 
     # define renorm fn
     def back01(tensor):
@@ -193,29 +194,25 @@ def plotfn(f, train, test, LOSS, VALLOSS):
     # norm the remain
     zremain = back01(zremain)
 
-    # inner parts, order: upper right, down left, down right
-    parts1 = []
-    for no in range(3):
-        part = back01(zparts[1][:, :, :, no].reshape(*zremain.shape))
-        parts1.append(part)
+    for i in range(_depth):
 
-    # piece the inner up
-    zremain = torch.cat([zremain, parts1[0]], dim=-1)
-    tmp = torch.cat([parts1[1], parts1[2]], dim=-1)
-    zremain = torch.cat([zremain, tmp], dim=-2)
+        # inner parts, order: upper right, down left, down right
+        parts = []
+        for no in range(3):
+            part = back01(zparts[-(i + 1)][:, :, :, no].reshape(*zremain.shape))
+            parts.append(part)
 
-    # out parts, order: upper right, down left, down right
-    parts2 = []
-    for no in range(3):
-        part = back01(zparts[0][:, :, :, no].reshape(*zremain.shape))
-        parts2.append(part)
+        # piece the inner up
+        zremain = torch.cat([zremain, parts[0]], dim=-1)
+        tmp = torch.cat([parts[1], parts[2]], dim=-1)
+        zremain = torch.cat([zremain, tmp], dim=-2)
 
-    # piece the outer up
-    zremain = torch.cat([zremain, parts2[0]], dim=-1)
-    tmp = torch.cat([parts2[1], parts2[2]], dim=-1)
-    zremain = torch.cat([zremain, tmp], dim=-2).permute([0, 2, 3, 1]).detach().cpu().numpy()
+    # convert zremaoin to numpy array
+    zremain = zremain.permute([0, 2, 3, 1]).detach().cpu().numpy()
 
+    # convert samples to numpy int array
     samples = samples.to(torch.int).permute([0, 2, 3, 1]).detach().cpu().numpy()
+
     for no in range(samplesNum):
         waveletPlot = plt.figure(figsize=(8, 8))
         waveletAx = waveletPlot.add_subplot(111)
