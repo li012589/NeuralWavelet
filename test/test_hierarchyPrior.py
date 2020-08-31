@@ -29,7 +29,7 @@ def test_hierarchyPrior():
     p2 = source.DiscreteLogistic([channel, 4, 3], decimal, rounding=utils.roundingWidentityGradient)
     p3 = source.MixtureDiscreteLogistic([channel, 1, 4], 5, decimal, rounding=utils.roundingWidentityGradient)
 
-    P = source.HierarchyPrior(channel, length, [p1, p2, p3])
+    P = source.HierarchyPrior(channel, length, [p1, p2, p3], repeat=2)
 
     x = P.sample(100)
     logp = P.logProbability(x)
@@ -38,7 +38,7 @@ def test_hierarchyPrior():
     p2 = UniTestPrior([channel, 4, 3], 2)
     p3 = UniTestPrior([channel, 1, 4], 3)
 
-    P = source.HierarchyPrior(channel, length, [p1, p2, p3])
+    P = source.HierarchyPrior(channel, length, [p1, p2, p3], repeat=2)
 
     x = P.sample(1)
     logp = P.logProbability(x)
@@ -56,7 +56,7 @@ def test_grad():
     p2 = source.DiscreteLogistic([channel, 4, 3], decimal, rounding=utils.roundingWidentityGradient)
     p3 = source.MixtureDiscreteLogistic([channel, 1, 4], 5, decimal, rounding=utils.roundingWidentityGradient)
 
-    P = source.HierarchyPrior(channel, length, [p1, p2, p3])
+    P = source.HierarchyPrior(channel, length, [p1, p2, p3], repeat=2)
 
     x = P.sample(100)
     logp = P.logProbability(x)

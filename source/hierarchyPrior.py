@@ -5,7 +5,7 @@ from .source import Source
 
 
 class HierarchyPrior(Source):
-    def __init__(self, channel, length, priorList, depth=None, K=1.0, name="hierarchyPiror"):
+    def __init__(self, channel, length, priorList, depth=None, repeat=1, K=1.0, name="hierarchyPiror"):
         super(HierarchyPrior, self).__init__([channel, length, length], K, name)
         kernelSize = 2
         shape = [length, length]
@@ -14,7 +14,10 @@ class HierarchyPrior(Source):
 
         indexList = []
         for no in range(depth):
-            indexList.append(getIndeices(shape, kernelSize, kernelSize, kernelSize * (kernelSize**no), kernelSize**no, 0))
+            if repeat % 2 == 0:
+                indexList.append(getIndeices(shape, kernelSize, kernelSize, kernelSize * (kernelSize**no), kernelSize**no, 0))
+            else:
+                indexList.append(getIndeices(shape, kernelSize, kernelSize, kernelSize * (kernelSize**no), kernelSize**no, kernelSize**no))
         indexIList = [item[0] for item in indexList]
         indexJList = [item[1] for item in indexList]
 
