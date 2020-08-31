@@ -156,7 +156,7 @@ def plotfn(f, train, test, LOSS, VALLOSS):
     # draw samples, same samples
     samplesNum = 10
     samples, _ = iter(train).next()
-    samples = samples[:samplesNum]
+    samples = samples[:samplesNum].to(device)
 
     # build a shallow flow
     _depth = 2
@@ -209,8 +209,6 @@ def plotfn(f, train, test, LOSS, VALLOSS):
     tmp = torch.cat([parts2[1], parts2[2]], dim=-1)
     zremain = torch.cat([zremain, tmp], dim=-2).permute([0, 2, 3, 1]).detach().cpu().numpy()
 
-    import pdb
-    pdb.set_trace()
     samples = samples.to(torch.int).permute([0, 2, 3, 1]).detach().cpu().numpy()
     for no in range(samplesNum):
         waveletPlot = plt.figure(figsize=(8, 8))
@@ -223,8 +221,6 @@ def plotfn(f, train, test, LOSS, VALLOSS):
         originalAx.imshow(samples[no])
         plt.savefig(rootFolder + 'pic/originalPlot' + str(no) + '.png', bbox_inches="tight", pad_inches=0)
         plt.close()
-    import pdb
-    pdb.set_trace()
 
 
 # Training
