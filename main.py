@@ -86,7 +86,7 @@ if target == "CIFAR":
     trainTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=True, download=True, transform=trainsetTransform)
     testTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=False, download=True, transform=trainsetTransform)
     targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=True)
-    targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=True)
+    targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=False)
 elif args.target == "ImageNet":
     pass
 elif args.target == "MNIST":
