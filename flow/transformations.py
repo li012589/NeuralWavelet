@@ -17,6 +17,7 @@ class ScalingNshifting(Flow):
         return (y + self.shifting) * (1 / self.scaling)
 
     def forward(self, z):
+        # to int
         return z * (self.scaling) - self.shifting, z.new_zeros(z.shape[0])
 
     def forward_(self, z):
