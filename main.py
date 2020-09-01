@@ -101,14 +101,15 @@ _length = int((blockLength * blockLength) / 4)
 for n in range(int(math.log(blockLength, 2))):
     if n != (int(math.log(blockLength, 2))) - 1:
         # intermedia variable prior, 3 here means the left 3 variable
-        priorList.append(source.DiscreteLogistic([channel, _length, 3], decimal, rounding).to(device))
+        priorList.append(source.DiscreteLogistic([channel, 1, 3], decimal, rounding).to(device))
     else:
         # final variable prior, all 4 variable
-        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding).to(device))
+        priorList.append(source.MixtureDiscreteLogistic([channel, 1, 4], nMixing, decimal, rounding).to(device))
     _length = int(_length / 4)
 
 # Building the hierarchy prior
 p = source.HierarchyPrior(channel, blockLength, priorList, repeat=repeat)
+
 
 # Building NICE model inside MERA
 assert nNICE % 2 == 0

@@ -28,8 +28,10 @@ class HierarchyPrior(Source):
 
         self.priorList = torch.nn.ModuleList(priorList)
 
+        '''
         for no in range(len(self.priorList)):
             assert self.priorList[no].nvars == [channel] + list(self.factorOutIList[no].shape)
+        '''
 
     def sample(self, batchSize, K=None):
         x = torch.zeros([batchSize] + self.nvars)
