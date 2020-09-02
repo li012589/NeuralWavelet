@@ -28,6 +28,7 @@ class HierarchyPrior(Source):
 
         self.priorList = torch.nn.ModuleList(priorList)
 
+        # skip check to allow smaller prior
         '''
         for no in range(len(self.priorList)):
             assert self.priorList[no].nvars == [channel] + list(self.factorOutIList[no].shape)

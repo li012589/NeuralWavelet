@@ -107,10 +107,13 @@ for n in range(int(math.log(blockLength, 2))):
             priorList.append(source.DiscreteLogistic([channel, 1, 3], decimal, rounding).to(device))
         else:
             priorList.append(source.DiscreteLogistic([channel, _length, 3], decimal, rounding).to(device))
+    elif n == depth - 1:
+        # if depth is specified, the last prior
+        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding).to(device))
+        break
     else:
         # final variable prior, all 4 variable
-        assert _length == 1
-        priorList.append(source.MixtureDiscreteLogistic([channel, 1, 4], nMixing, decimal, rounding).to(device))
+        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding).to(device))
     _length = int(_length / 4)
 
 # Building the hierarchy prior
@@ -143,6 +146,9 @@ f = flow.MERA(dimensional, blockLength, layerList, repeat, depth=depth, prior=p)
 
 # sanity check of f and it's prior
 for no in range(int(math.log(blockLength, 2))):
+    if no == depth:
+        # early break if depth is specified
+        break
     if no != int(math.log(blockLength, 2)) - 1:
         np.testing.assert_allclose(f.indexI[(no + 1) * (repeat + 1) - 1][:, 1:], f.prior.factorOutIList[no])
     else:
