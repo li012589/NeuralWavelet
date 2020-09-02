@@ -35,14 +35,14 @@ class ImageNet(torch.utils.data.Dataset):
         if d64:
             self.trainURL = ["http://www.image-net.org/image/downsample/Imagenet64_train_part1.zip", "http://www.image-net.org/image/downsample/Imagenet64_train_part2.zip"]
             self.valURL = ["http://www.image-net.org/image/downsample/Imagenet64_val.zip"]
-            folders = ["Imagenet64_train_part1", "Imagenet64_train_part2"]
-            self.idxs = [range(1, 6), range(6, 11)]
+            folders = ["Imagenet_train"]
+            self.idxs = [range(1, 11)]
             self.lineSize = 64
 
         else:
             self.trainURL = ["http://www.image-net.org/image/downsample/Imagenet32_train.zip"]
             self.valURL = ["http://www.image-net.org/image/downsample/Imagenet32_val.zip"]
-            folders = ["Imagenet32_train"]
+            folders = ["Imagenet_train"]
             self.idxs = [range(1, 11)]
             self.lineSize = 32
 
@@ -74,7 +74,7 @@ class ImageNet(torch.utils.data.Dataset):
             filename = url.split('/')[-1]
             cmd = ["wget", url, "-P", self.root]
             subprocess.check_call(cmd)
-            cmd = ['unzip', '-o', os.path.join(self.root, filename), '-d', self.root]
+            cmd = ['unzip', '-o', os.path.join(self.root, filename), '-d', os.path.join(self.root, "Imagenet_train")]
             subprocess.check_call(cmd)
             folders.append(filename.split(".")[0])
             cmd = ['rm', '-rf', os.path.join(self.root, filename)]
