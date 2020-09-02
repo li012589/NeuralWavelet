@@ -140,16 +140,16 @@ for n in range(int(math.log(blockLength, 2))):
     if n != (int(math.log(blockLength, 2))) - 1:
         # intermedia variable prior, 3 here means the left 3 variable
         if smallPrior:
-            priorList.append(source.DiscreteLogistic([channel, 1, 3], decimal, rounding)
+            priorList.append(source.DiscreteLogistic([channel, 1, 3], decimal, rounding))
         else:
-            priorList.append(source.DiscreteLogistic([channel, _length, 3], decimal, rounding)
+            priorList.append(source.DiscreteLogistic([channel, _length, 3], decimal, rounding))
     elif n == depth - 1:
         # if depth is specified, the last prior
-        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding)
+        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding))
         break
     else:
         # final variable prior, all 4 variable
-        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding)
+        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding))
     _length = int(_length / 4)
 
 # Building the hierarchy prior
@@ -275,7 +275,7 @@ def plotfn(f, train, test, LOSS, VALLOSS):
         plt.close()
 
 # Training
-f = train.forwardKLD(f, targetTrainLoader, targetTestLoader, epoch, lr, savePeriod, rootFolder, device, plotfn=plotfn)
+f = train.forwardKLD(f, targetTrainLoader, targetTestLoader, epoch, lr, savePeriod, rootFolder, plotfn=plotfn)
 
 # Pasuse
 import pdb
