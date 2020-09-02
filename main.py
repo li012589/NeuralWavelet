@@ -20,6 +20,7 @@ group.add_argument("-nhidden", type=int, default=3, help="num of MLP layers insi
 group.add_argument("-hdim", type=int, default=50, help="layer dimension of MLP inside NICE inside MERA")
 group.add_argument("-nNICE", type=int, default=2, help="num of NICE layers of each RG scale (even number only)")
 group.add_argument("-nMixing", type=int, default=5, help="num of mixing distributions of last sub-priors")
+group.add_argument("-smallPrior", action='store_true', help="use a smaller prior to save params")
 
 group = parser.add_argument_group('Learning  parameters')
 group.add_argument("-epoch", type=int, default=400, help="num of epoches to train")
@@ -38,7 +39,7 @@ device = torch.device("cpu" if args.cuda < 0 else "cuda:" + str(args.cuda))
 
 # Creating save folder
 if args.folder is None:
-    rootFolder = './opt/default_' + args.target + "_depth_" + str(args.depth) + "_repeat_" + str(args.repeat) + "_nhidden_" + str(args.nhidden) + "_hdim_" + str(args.hdim) + "/"
+    rootFolder = './opt/default_' + args.target + "_depth_" + str(args.depth) + "_repeat_" + str(args.repeat) + "_nhidden_" + str(args.nhidden) + "_hdim_" + str(args.hdim) + "_Sprior_" + str(args.smallPrior) + "/"
     print("No specified saving path, using", rootFolder)
 else:
     rootFolder = args.folder
@@ -55,12 +56,13 @@ if not args.load:
     hdim = args.hdim
     nNICE = args.nNICE
     nMixing = args.nMixing
+    smallPrior = args.smallPrior
     epoch = args.epoch
     batch = args.batch
     savePeriod = args.savePeriod
     lr = args.lr
     with open(rootFolder + "/parameter.json", "w") as f:
-        config = {'target': target, 'depth': depth, 'repeat': repeat, 'nhidden': nhidden, 'hdim': hdim, 'nNICE': nNICE, 'nMixing': nMixing, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr}
+        config = {'target': target, 'depth': depth, 'repeat': repeat, 'nhidden': nhidden, 'hdim': hdim, 'nNICE': nNICE, 'nMixing': nMixing, 'smallPrior': smallPrior, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr}
         json.dump(config, f)
 else:
     # load saved parameters, and decoding them to mem
@@ -101,9 +103,13 @@ _length = int((blockLength * blockLength) / 4)
 for n in range(int(math.log(blockLength, 2))):
     if n != (int(math.log(blockLength, 2))) - 1:
         # intermedia variable prior, 3 here means the left 3 variable
-        priorList.append(source.DiscreteLogistic([channel, 1, 3], decimal, rounding).to(device))
+        if smallPrior:
+            priorList.append(source.DiscreteLogistic([channel, 1, 3], decimal, rounding).to(device))
+        else:
+            priorList.append(source.DiscreteLogistic([channel, _length, 3], decimal, rounding).to(device))
     else:
         # final variable prior, all 4 variable
+        assert _length == 1
         priorList.append(source.MixtureDiscreteLogistic([channel, 1, 4], nMixing, decimal, rounding).to(device))
     _length = int(_length / 4)
 
@@ -225,7 +231,6 @@ def plotfn(f, train, test, LOSS, VALLOSS):
         originalAx.imshow(samples[no])
         plt.savefig(rootFolder + 'pic/originalPlot' + str(no) + '.png', bbox_inches="tight", pad_inches=0)
         plt.close()
-
 
 # Training
 f = train.forwardKLD(f, targetTrainLoader, targetTestLoader, epoch, lr, savePeriod, rootFolder, device, plotfn=plotfn)
