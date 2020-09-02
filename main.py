@@ -83,14 +83,50 @@ if target == "CIFAR":
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
-    lambd = lambda x: (x * 255).byte().to(torch.float32)
+    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=True, download=True, transform=trainsetTransform)
     testTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=False, download=True, transform=trainsetTransform)
     targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=True)
     targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=False)
-elif args.target == "ImageNet":
-    pass
+elif args.target == "ImageNet32":
+    # Define dimensions
+    targetSize = [3, 32, 32]
+    dimensional = 2
+    channel = targetSize[0]
+    blockLength = targetSize[-1]
+
+    # Define nomaliziation and decimal
+    decimal = flow.ScalingNshifting(256, -128)
+    rounding = utils.roundingWidentityGradient
+
+    # Building train & test datasets
+    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
+    trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
+    trainTarget = utils.ImageNet(root='./data/ImageNet32', train=True, download=True, transform=trainsetTransform)
+    testTarget = utils.ImageNet(root='./data/ImageNet32', train=False, download=True, transform=trainsetTransform)
+    targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=True)
+    targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=False)
+
+elif args.target == "ImageNet64":
+    # Define dimensions
+    targetSize = [3, 64, 64]
+    dimensional = 2
+    channel = targetSize[0]
+    blockLength = targetSize[-1]
+
+    # Define nomaliziation and decimal
+    decimal = flow.ScalingNshifting(256, -128)
+    rounding = utils.roundingWidentityGradient
+
+    # Building train & test datasets
+    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
+    trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
+    trainTarget = utils.ImageNet(root='./data/ImageNet32', train=True, download=True, transform=trainsetTransform, d64=True)
+    testTarget = utils.ImageNet(root='./data/ImageNet32', train=False, download=True, transform=trainsetTransform, d64=True)
+    targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=True)
+    targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=False)
+
 elif args.target == "MNIST":
     pass
 else:
@@ -104,16 +140,16 @@ for n in range(int(math.log(blockLength, 2))):
     if n != (int(math.log(blockLength, 2))) - 1:
         # intermedia variable prior, 3 here means the left 3 variable
         if smallPrior:
-            priorList.append(source.DiscreteLogistic([channel, 1, 3], decimal, rounding).to(device))
+            priorList.append(source.DiscreteLogistic([channel, 1, 3], decimal, rounding)
         else:
-            priorList.append(source.DiscreteLogistic([channel, _length, 3], decimal, rounding).to(device))
+            priorList.append(source.DiscreteLogistic([channel, _length, 3], decimal, rounding)
     elif n == depth - 1:
         # if depth is specified, the last prior
-        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding).to(device))
+        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding)
         break
     else:
         # final variable prior, all 4 variable
-        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding).to(device))
+        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding)
     _length = int(_length / 4)
 
 # Building the hierarchy prior

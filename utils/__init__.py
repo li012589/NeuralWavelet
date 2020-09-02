@@ -18,3 +18,4 @@ from .slerp import np_slerp, slerp
 from .rounding import roundingWidentityGradient
 from .distributions import *
 from .im2col import getIndeices, dispatch, collect
+from .imagenetload import ImageNet
