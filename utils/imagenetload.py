@@ -64,7 +64,7 @@ class ImageNet(torch.utils.data.Dataset):
         if train:
             X, Y = load_databatch(root, folders, self.idxs, self.lineSize)
         else:
-            X, Y = unpickle(os.path.join(root, "val_data"), self.lineSize)
+            X, Y = unpickle(os.path.join(root, "Imagenet_train", "val_data"), self.lineSize)
         self.data = X
         self.targets = Y
 
@@ -84,7 +84,7 @@ class ImageNet(torch.utils.data.Dataset):
         flag = True
         if not train:
             for url in URL:
-                if not os.path.exists(os.path.join(root, "val_data")):
+                if not os.path.exists(os.path.join(root, "Imagenet_train", "val_data")):
                     flag = False
         else:
             for i, folder in enumerate(folders):
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     import torchvision
     lambd = lambda x: (x * 255).byte().to(torch.float32)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
-    trainTarget = ImageNet(root='./data/ImageNet64', train=True, download=True, transform=trainsetTransform, d64=True)
+    trainTarget = ImageNet(root='./data/ImageNet64', train=False, download=True, transform=trainsetTransform, d64=True)
     targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=500, shuffle=True)
 
     samples, labels = iter(targetTrainLoader).next()
