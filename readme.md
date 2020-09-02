@@ -2,16 +2,21 @@
 
 ## TODO
 
-- % Reverse decimal inter outer
+### Shuo-hui Li
 
-- train
+- progressive_loading
+- ImageNet, big dataset
+- migrate between dataset
+- double check repeat = odd
 
-- Main-- train
+### Zhibin Liang
+
+- Reverse decimal inter outer
 
 - CDF w/ encoder needs
 
-- Main-- encode
+  
 
   
-  
+
   
