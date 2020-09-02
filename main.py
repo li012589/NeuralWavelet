@@ -11,7 +11,7 @@ import flow, source, train, utils
 parser = argparse.ArgumentParser(description="")
 
 group = parser.add_argument_group("Target Parameters")
-group.add_argument('-target', type=str, default='CIFAR', choices=['CIFAR', 'ImageNet', 'MNIST'], metavar='DATASET', help='Dataset choice.')
+group.add_argument('-target', type=str, default='CIFAR', choices=['CIFAR', 'ImageNet32', 'ImageNet64', 'MNIST'], metavar='DATASET', help='Dataset choice.')
 
 group = parser.add_argument_group("Architecture Parameters")
 group.add_argument("-depth", type=int, default=-1, help="depth of hierarchy structure, -1 means full depth")
