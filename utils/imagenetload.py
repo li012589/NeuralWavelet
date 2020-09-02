@@ -2,13 +2,17 @@ from PIL import Image
 import os, subprocess, pickle
 import torch
 import numpy as np
+import hashlib
 
 
 def unpickle(file, lineSize):
+    img_size2 = lineSize * lineSize
     with open(file, 'rb') as fo:
         d = pickle.load(fo)
     x = d['data']
     y = d['labels']
+    x = np.dstack((x[:, :img_size2], x[:, img_size2:2 * img_size2], x[:, 2 * img_size2:]))
+    x = x.reshape((x.shape[0], lineSize, lineSize, 3))
     y = np.array([i - 1 for i in y])
     return x, y
 
@@ -16,12 +20,9 @@ def unpickle(file, lineSize):
 def load_databatch(data_folder, folders, idxs, lineSize=32):
     X = []
     Y = []
-    img_size2 = lineSize * lineSize
     for i, folder in enumerate(folders):
         for no in idxs[i]:
             x, y = unpickle(os.path.join(data_folder, folder, "train_data_batch_" + str(no)), lineSize)
-            x = np.dstack((x[:, :img_size2], x[:, img_size2:2 * img_size2], x[:, 2 * img_size2:]))
-            x = x.reshape((x.shape[0], lineSize, lineSize, 3))
             X.append(x)
             Y.append(y)
     X = np.concatenate(X, axis=0)
@@ -53,13 +54,18 @@ class ImageNet(torch.utils.data.Dataset):
         self.train = train
         self.root = root
 
-        if download:
-            if train:
-                self.download(self.trainURL)
-            else:
-                self.download(self.valURL)
+        if train:
+            URL = self.trainURL
+        else:
+            URL = self.valURL
 
-        X, Y = load_databatch(root, folders, self.idxs, self.lineSize)
+        if download and not self.check_download(root, folders, URL, self.idxs, train):
+            self.download(URL)
+
+        if train:
+            X, Y = load_databatch(root, folders, self.idxs, self.lineSize)
+        else:
+            X, Y = unpickle(os.path.join(root, "val_data"), self.lineSize)
         self.data = X
         self.targets = Y
 
@@ -69,9 +75,26 @@ class ImageNet(torch.utils.data.Dataset):
             filename = url.split('/')[-1]
             cmd = ["wget", url]
             subprocess.check_call(cmd)
-            cmd = ['unzip', self.root + filename]
+            cmd = ['unzip', os.path.join(self.root, filename)]
             subprocess.check_call(cmd)
             folders.append(filename.split(".")[0])
+            cmd = ['rm -rf', os.path.join(self.root, filename)]
+            subprocess.check_call(cmd)
+
+    def check_download(self, root, folders, URL, idx, train):
+        flag = True
+        import pdb
+        pdb.set_trace()
+        if not train:
+            for url in URL:
+                if not os.path.exists(os.path.join(root, "val_data")):
+                    flag = False
+        else:
+            for i, folder in enumerate(folders):
+                for no in idx[i]:
+                    if not os.path.exists(os.path.join(root, folder, "train_data_batch_" + str(no))):
+                        flag = False
+        return flag
 
     def __getitem__(self, index):
         img, target = self.data[index], self.targets[index]
@@ -95,7 +118,7 @@ if __name__ == "__main__":
     import torchvision
     lambd = lambda x: (x * 255).byte().to(torch.float32)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
-    trainTarget = ImageNet(root='./data/ImageNet64', train=True, download=False, transform=trainsetTransform, d64=True)
+    trainTarget = ImageNet(root='./data/ImageNet64', train=True, download=True, transform=trainsetTransform, d64=True)
     targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=500, shuffle=True)
 
     samples, labels = iter(targetTrainLoader).next()
