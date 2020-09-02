@@ -2,7 +2,6 @@ from PIL import Image
 import os, subprocess, pickle
 import torch
 import numpy as np
-import hashlib
 
 
 def unpickle(file, lineSize):
@@ -73,7 +72,7 @@ class ImageNet(torch.utils.data.Dataset):
         folders = []
         for url in URL:
             filename = url.split('/')[-1]
-            cmd = ["wget", url]
+            cmd = ["wget", url, "-P", self.root]
             subprocess.check_call(cmd)
             cmd = ['unzip', os.path.join(self.root, filename)]
             subprocess.check_call(cmd)
