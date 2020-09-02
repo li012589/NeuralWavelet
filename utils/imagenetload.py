@@ -95,7 +95,7 @@ if __name__ == "__main__":
     import torchvision
     lambd = lambda x: (x * 255).byte().to(torch.float32)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
-    trainTarget = ImageNet(root='./data/ImageNet32', train=True, download=False, transform=trainsetTransform)
+    trainTarget = ImageNet(root='./data/ImageNet64', train=True, download=False, transform=trainsetTransform, d64=True)
     targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=500, shuffle=True)
 
     samples, labels = iter(targetTrainLoader).next()
