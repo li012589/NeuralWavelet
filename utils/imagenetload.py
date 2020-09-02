@@ -74,10 +74,10 @@ class ImageNet(torch.utils.data.Dataset):
             filename = url.split('/')[-1]
             cmd = ["wget", url, "-P", self.root]
             subprocess.check_call(cmd)
-            cmd = ['unzip', os.path.join(self.root, filename)]
+            cmd = ['unzip', '-o', os.path.join(self.root, filename), '-d', self.root]
             subprocess.check_call(cmd)
             folders.append(filename.split(".")[0])
-            cmd = ['rm -rf', os.path.join(self.root, filename)]
+            cmd = ['rm', '-rf', os.path.join(self.root, filename)]
             subprocess.check_call(cmd)
 
     def check_download(self, root, folders, URL, idx, train):
