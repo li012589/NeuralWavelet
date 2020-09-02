@@ -82,8 +82,6 @@ class ImageNet(torch.utils.data.Dataset):
 
     def check_download(self, root, folders, URL, idx, train):
         flag = True
-        import pdb
-        pdb.set_trace()
         if not train:
             for url in URL:
                 if not os.path.exists(os.path.join(root, "val_data")):
