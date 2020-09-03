@@ -345,7 +345,7 @@ def test_cdf_Discretelogistic():
     logscale = decimal.inverse_(torch.tensor(torch.arange(32).float().reshape(2, 16) / 10))
 
     bins = torch.arange(-nbins // 2, nbins // 2).reshape(-1, 1, 1)
-    bins = bins - decimal.forward_(mean.reshape(1, *mean.shape)).int() - 1
+    bins = bins + decimal.forward_(mean.reshape(1, *mean.shape)).int() - 1
     CDF = cdfDiscreteLogitstic(bins, mean, logscale, decimal=decimal)
 
     assert CDF.shape == bins.shape
@@ -361,7 +361,7 @@ def test_cdf_mixtureDiscretelogistic():
     parts = torch.randn(2, 32, 5)
 
     bins = torch.arange(-nbins // 2, nbins // 2).reshape(-1, 1, 1)
-    bins = bins - (decimal.forward_(mean.permute([1, 2, 0])) * parts).sum(-1).reshape(1, *mean.shape[1:]).int() - 1
+    bins = bins + (decimal.forward_(mean.permute([1, 2, 0])) * parts).sum(-1).reshape(1, *mean.shape[1:]).int() - 1
 
     CDF = cdfMixDiscreteLogistic(bins, mean, logscale, parts, decimal=decimal)
 
