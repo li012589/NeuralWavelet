@@ -5,7 +5,7 @@ import torch
 import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal
 from flow import ScalingNshifting
-from utils import logLogistic, sampleLogistic, logDiscreteLogistic, sampleDiscreteLogistic, logMixDiscreteLogistic, sampleMixDiscreteLogistic, mixtureSample, mixtureLogProbability
+from utils import logLogistic, sampleLogistic, logDiscreteLogistic, sampleDiscreteLogistic, logMixDiscreteLogistic, sampleMixDiscreteLogistic, mixtureSample, mixtureLogProbability, cdfDiscreteLogitstic, cdfMixDiscreteLogistic
 
 
 def test_logLogistic():
@@ -338,14 +338,47 @@ def test_sampleMixDiscreteLogistic():
     '''
 
 
+def test_cdf_Discretelogistic():
+    decimal = ScalingNshifting(scaling=255.0, shifting=-128.0)
+    nbins = 4096
+    mean = decimal.inverse_(torch.tensor(torch.arange(32).float().reshape(2, 16)))
+    logscale = decimal.inverse_(torch.tensor(torch.arange(32).float().reshape(2, 16) / 10))
+
+    bins = torch.arange(-nbins // 2, nbins // 2).reshape(-1, 1, 1)
+    bins = bins - decimal.forward_(mean.reshape(1, *mean.shape)).int() - 1
+    CDF = cdfDiscreteLogitstic(bins, mean, logscale, decimal=decimal)
+
+    assert CDF.shape == bins.shape
+    assert CDF.max() <= 1.0
+    assert CDF.min() >= 0.0
+
+
+def test_cdf_mixtureDiscretelogistic():
+    decimal = ScalingNshifting(scaling=255.0, shifting=-128.0)
+    nbins = 4096
+    mean = decimal.inverse_(torch.tensor(torch.randint(25, [5, 2, 32]).float()))
+    logscale = torch.tensor(torch.randint(3, [5, 2, 32]).float() / 10)
+    parts = torch.randn(2, 32, 5)
+
+    bins = torch.arange(-nbins // 2, nbins // 2).reshape(-1, 1, 1)
+    bins = bins - (decimal.forward_(mean.permute([1, 2, 0])) * parts).sum(-1).reshape(1, *mean.shape[1:]).int() - 1
+
+    CDF = cdfMixDiscreteLogistic(bins, mean, logscale, parts, decimal=decimal)
+
+    assert CDF.shape == bins.shape
+    assert CDF.max() <= 1.0
+    assert CDF.min() >= 0.0
+
 
 if __name__ == "__main__":
-    test_sampleDiscreteLogistic()
     '''
+    test_sampleDiscreteLogistic()
     test_logDiscreteLogistic()
     test_logLogistic()
     test_sampleLogistic()
     test_sampleDiscreteLogistic()
     test_logMixDiscreteLogistic()
     test_sampleMixDiscreteLogistic()
+    test_cdf_Discretelogistic()
     '''
+    test_cdf_mixtureDiscretelogistic()

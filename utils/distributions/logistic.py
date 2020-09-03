@@ -39,6 +39,16 @@ def sampleDiscreteLogistic(size, mean, logscale, rounding=torch.round, decimal=N
         return rounding(decimal.forward_(x))
 
 
+def cdfDiscreteLogitstic(x, mean, logscale, decimal=None, test=True, testBroadcastSize=False):
+    if test:
+        assert np.all(np.equal(np.mod(x.cpu().detach().numpy(), 1), 0))
+    mean, logscale = broadcastSize(x.shape, [mean, logscale], testBroadcastSize)
+    if decimal is None:
+        return torch.sigmoid((x + 0.5 - mean) / torch.exp(logscale))
+    else:
+        return torch.sigmoid((decimal.inverse_(x + 0.5) - mean) / torch.exp(logscale))
+
+
 def logMixDiscreteLogistic(x, mean, logscale, parts, decimal=None, test=True, eps=1e-19):
     '''
     x, mean, logscale are of broadcastable size,
@@ -70,9 +80,21 @@ def sampleMixDiscreteLogistic(size, mean, logscale, parts, rounding=torch.round,
     return sampleDiscreteLogistic(size, mean, logscale, rounding, decimal, testBroadcastSize, eps)
 
 
-def cdfDiscreteLogitstic():
-    pass
+def cdfMixDiscreteLogistic(x, mean, logscale, parts, decimal=None, test=True):
+    assert mean.shape[0] == parts.shape[-1]
+    assert logscale.shape[0] == parts.shape[-1]
+    parts = torch.softmax(parts, dim=-1)
 
+    if test:
+        assert np.all(np.equal(np.mod(x.cpu().detach().numpy(), 1), 0))
+    mean, logscale = mean.permute(torch.arange(len(mean.shape)).roll(-1).tolist()), logscale.permute(torch.arange(len(mean.shape)).roll(-1).tolist())
+    x = x.view(*x.shape, 1)
+    mean, logscale, parts = broadcastSize(x.shape, [mean, logscale, parts], test=False)
 
-def cdfMixDiscreteLogistic():
-    pass
+    if decimal is None:
+        cdfs = torch.sigmoid((x + 0.5 - mean) / torch.exp(logscale))
+    else:
+        cdfs = torch.sigmoid((decimal.inverse_(x + 0.5) - mean) / torch.exp(logscale))
+
+    cdf = torch.sum(cdfs * parts, dim=-1)
+    return cdf
