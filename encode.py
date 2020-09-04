@@ -163,7 +163,7 @@ else:
 
 # load the model
 print("load saving at " + name)
-f = torch.load(name).to(device)
+f = torch.load(name, map_location=device)
 
 shapeList = [[3, *term.shape] for term in f.prior.factorOutIList]
 
@@ -176,7 +176,13 @@ def divide(z):
         if no != int(math.log(blockLength, 2)) - 1:
             zpart = zpart - decimal.forward_(f.prior.priorList[no].mean).reshape(1, *f.prior.priorList[no].mean.shape).int() + args.nbins // 2
         else:
-            zpart = zpart - (decimal.forward_(f.prior.priorList[no].mean.permute([1, 2, 3, 0])) * f.prior.priorList[no].mixing).sum(-1).reshape(1, *f.prior.priorList[no].mean.shape[1:]).int() + args.nbins // 2
+            zpart = zpart - (decimal.forward_(f.prior.priorList[no].mean.permute([1, 2, 3, 0])) * torch.softmax(f.prior.priorList[no].mixing, -1)).sum(-1).reshape(1, *f.prior.priorList[no].mean.shape[1:]).int() + args.nbins // 2
+        '''
+        print(zpart.max())
+        print(zpart.min())
+        import pdb
+        pdb.set_trace()
+        '''
         parts.append(zpart.reshape(zpart.shape[0], -1).int().detach())
     return torch.cat(parts, -1).numpy()
 
@@ -188,7 +194,7 @@ def join(rcnZ):
         rcnZ = rcnZ[:, np.prod(shapeList[no]):]
 
         if no == int(math.log(blockLength, 2)) - 1:
-            rcnZpart = rcnZpart + (decimal.forward_(f.prior.priorList[no].mean.permute([1, 2, 3, 0])) * f.prior.priorList[no].mixing).sum(-1).reshape(1, *f.prior.priorList[no].mean.shape[1:]).int() - args.nbins // 2
+            rcnZpart = rcnZpart + (decimal.forward_(f.prior.priorList[no].mean.permute([1, 2, 3, 0])) * torch.softmax(f.prior.priorList[no].mixing, -1)).sum(-1).reshape(1, *f.prior.priorList[no].mean.shape[1:]).int() - args.nbins // 2
         else:
             rcnZpart = rcnZpart + decimal.forward_(f.prior.priorList[no].mean).reshape(1, *f.prior.priorList[no].mean.shape).int() - args.nbins // 2
         retZ = utils.collect(f.prior.factorOutIList[no], f.prior.factorOutJList[no], retZ, rcnZpart.int())
@@ -219,7 +225,7 @@ def testBPD(loader, earlyStop=-1):
     ERR = []
 
     count = 0
-    for samples, _ in targetTrainLoader:
+    for samples, _ in loader:
         count += 1
         z, _ = f.inverse(samples)
 
