@@ -265,6 +265,7 @@ def testBPD(loader, earlyStop=-1):
 
     return actualBPD, theoryBPD, ERR
 
+
 print("Train Set:")
 testBPD(targetTrainLoader, earlyStop=args.earlyStop)
 print("Test Set:")
