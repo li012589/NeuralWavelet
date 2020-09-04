@@ -38,10 +38,23 @@ def test_hierarchyPrior():
     p2 = UniTestPrior([channel, 4, 3], 2)
     p3 = UniTestPrior([channel, 1, 4], 3)
 
-    P = source.HierarchyPrior(channel, length, [p1, p2, p3], repeat=2)
+    Pp = source.HierarchyPrior(channel, length, [p1, p2, p3], repeat=2)
 
-    x = P.sample(1)
-    logp = P.logProbability(x)
+    x = Pp.sample(1)
+    logp = Pp.logProbability(x)
+
+    target = np.array([[3, 1, 2, 1, 3, 1, 2, 1], [1, 1, 1, 1, 1, 1, 1, 1], [2, 1, 2, 1, 2, 1, 2, 1], [1, 1, 1, 1, 1, 1, 1, 1], [3, 1, 2, 1, 3, 1, 2, 1], [1, 1, 1, 1, 1, 1, 1, 1], [2, 1, 2, 1, 2, 1, 2, 1], [1, 1, 1, 1, 1, 1, 1, 1]])
+    assert_allclose(x[0, 0].detach().numpy(), target)
+    assert logp == -(16 * 3 * 2**1 + 4 * 3 * 2**2 + 1 * 4 * 2**3)
+
+    p1 = UniTestPrior([channel, 16, 3], 1)
+    p2 = UniTestPrior([channel, 4, 3], 2)
+    p3 = UniTestPrior([channel, 1, 4], 3)
+
+    Ppodd = source.HierarchyPrior(channel, length, [p1, p2, p3], repeat=1)
+
+    x = Ppodd.sample(1)
+    logp = Ppodd.logProbability(x)
 
     target = np.array([[3, 1, 2, 1, 3, 1, 2, 1], [1, 1, 1, 1, 1, 1, 1, 1], [2, 1, 2, 1, 2, 1, 2, 1], [1, 1, 1, 1, 1, 1, 1, 1], [3, 1, 2, 1, 3, 1, 2, 1], [1, 1, 1, 1, 1, 1, 1, 1], [2, 1, 2, 1, 2, 1, 2, 1], [1, 1, 1, 1, 1, 1, 1, 1]])
     assert_allclose(x[0, 0].detach().numpy(), target)
@@ -75,4 +88,4 @@ def test_grad():
 
 
 if __name__ == "__main__":
-    test_grad()
+    test_hierarchyPrior()

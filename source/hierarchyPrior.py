@@ -21,8 +21,12 @@ class HierarchyPrior(Source):
         indexIList = [item[0] for item in indexList]
         indexJList = [item[1] for item in indexList]
 
-        self.factorOutIList = [term[:, 1:] if no != len(indexIList) - 1 else term for no, term in enumerate(indexIList)]
-        self.factorOutJList = [term[:, 1:] if no != len(indexJList) - 1 else term for no, term in enumerate(indexJList)]
+        if repeat % 2 == 0:
+            self.factorOutIList = [term[:, 1:] if no != len(indexIList) - 1 else term for no, term in enumerate(indexIList)]
+            self.factorOutJList = [term[:, 1:] if no != len(indexJList) - 1 else term for no, term in enumerate(indexJList)]
+        else:
+            self.factorOutIList = [term[:, :-1] if no != len(indexIList) - 1 else term for no, term in enumerate(indexIList)]
+            self.factorOutJList = [term[:, :-1] if no != len(indexJList) - 1 else term for no, term in enumerate(indexJList)]
 
         assert len(priorList) == len(self.factorOutIList)
 
