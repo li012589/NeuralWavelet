@@ -265,8 +265,6 @@ def plotfn(f, train, test, LOSS, VALLOSS):
             tmp = torch.cat([parts[1], parts[2]], dim=-1)
             zremain = torch.cat([zremain, tmp], dim=-2)
         else:
-            import pdb
-            pdb.set_trace()
             tmp = torch.cat([parts[0], parts[1]], dim=-1)
             zremain = torch.cat([parts[2], zremain], dim=-1)
             zremain = torch.cat([tmp, zremain], dim=-2)
