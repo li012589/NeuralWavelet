@@ -16,6 +16,8 @@ parser = argparse.ArgumentParser(description="")
 parser.add_argument("-folder", default=None, help="Path to load the trained model")
 parser.add_argument("-cuda", type=int, default=-1, help="Which device to use with -1 standing for CPU, number bigger than -1 is N.O. of GPU.")
 parser.add_argument("-nbins", type=int, default=4096, help="bin number of ran")
+parser.add_argument("-precision", type=int, default=24, help="precision of CDF")
+parser.add_argument("-earlyStop", type=int, default=10, help="fewer batch of testing")
 parser.add_argument("-best", action='store_false', help="if load the best model")
 
 
@@ -29,7 +31,7 @@ else:
     rootFolder = args.folder
     if rootFolder[-1] != '/':
         rootFolder += '/'
-    with open(rootFolder + "/parameter.json", 'r') as f:
+    with open(rootFolder + "parameter.json", 'r') as f:
         config = json.load(f)
         locals().update(config)
 
@@ -60,8 +62,8 @@ if target == "CIFAR":
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=True, download=True, transform=trainsetTransform)
     testTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=False, download=True, transform=trainsetTransform)
-    targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=False)
-    targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=False)
+    targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=True)
+    targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=True)
 elif args.target == "ImageNet32":
     # Define dimensions
     targetSize = [3, 32, 32]
@@ -78,8 +80,8 @@ elif args.target == "ImageNet32":
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = utils.ImageNet(root='./data/ImageNet32', train=True, download=True, transform=trainsetTransform)
     testTarget = utils.ImageNet(root='./data/ImageNet32', train=False, download=True, transform=trainsetTransform)
-    targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=False)
-    targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=False)
+    targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=True)
+    targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=True)
 
 elif args.target == "ImageNet64":
     # Define dimensions
@@ -97,8 +99,8 @@ elif args.target == "ImageNet64":
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = utils.ImageNet(root='./data/ImageNet64', train=True, download=True, transform=trainsetTransform, d64=True)
     testTarget = utils.ImageNet(root='./data/ImageNet64', train=False, download=True, transform=trainsetTransform, d64=True)
-    targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=False)
-    targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=False)
+    targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=True)
+    targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=True)
 
 elif args.target == "MNIST":
     pass
@@ -163,14 +165,38 @@ else:
 print("load saving at " + name)
 f = torch.load(name).to(device)
 
-shapeList = [np.prod(term.shape) for term in f.prior.factorOutIList]
+shapeList = [[3, *term.shape] for term in f.prior.factorOutIList]
+
 
 def divide(z):
     parts = []
+    testparts = []
     for no in range(int(math.log(blockLength, 2))):
         _, zpart = utils.dispatch(f.prior.factorOutIList[no], f.prior.factorOutJList[no], z)
-        parts.append(zpart)
-    return parts
+
+        if no != int(math.log(blockLength, 2)) - 1:
+            zpart = zpart - decimal.forward_(f.prior.priorList[no].mean).reshape(1, *f.prior.priorList[no].mean.shape).int() + args.nbins // 2
+        else:
+            zpart = zpart - (decimal.forward_(f.prior.priorList[no].mean.permute([1, 2, 3, 0])) * f.prior.priorList[no].mixing).sum(-1).reshape(1, *f.prior.priorList[no].mean.shape[1:]).int() + args.nbins // 2
+        parts.append(zpart.reshape(zpart.shape[0], -1).int().detach())
+    return torch.cat(parts, -1).numpy()
+
+
+def join(rcnZ):
+    retZ = torch.zeros(batch, *targetSize).to(device).int()
+    for no in range(int(math.log(blockLength, 2))):
+        rcnZpart = rcnZ[:, :(np.prod(shapeList[no]))].reshape(rcnZ.shape[0], *shapeList[no])
+        rcnZ = rcnZ[:, np.prod(shapeList[no]):]
+
+        if no == int(math.log(blockLength, 2)) - 1:
+            rcnZpart = rcnZpart + (decimal.forward_(f.prior.priorList[no].mean.permute([1, 2, 3, 0])) * f.prior.priorList[no].mixing).sum(-1).reshape(1, *f.prior.priorList[no].mean.shape[1:]).int() - args.nbins // 2
+        else:
+            rcnZpart = rcnZpart + decimal.forward_(f.prior.priorList[no].mean).reshape(1, *f.prior.priorList[no].mean.shape).int() - args.nbins // 2
+        retZ = utils.collect(f.prior.factorOutIList[no], f.prior.factorOutJList[no], retZ, rcnZpart.int())
+    return retZ
+
+def cdf2int(cdf):
+    return (cdf * ((1 << args.precision) - args.nbins)).int().detach() + torch.arange(args.nbins).reshape(-1, 1, 1, 1)
 
 
 CDF = []
@@ -182,64 +208,64 @@ for no, prior in enumerate(f.prior.priorList):
     else:
         bins = _bins - 1 + (decimal.forward_(prior.mean.permute([1, 2, 3, 0])) * prior.mixing).sum(-1).reshape(1, *prior.mean.shape[1:]).int()
         cdf = cdfMixDiscreteLogistic(bins, prior.mean, prior.logscale, prior.mixing, decimal=prior.decimal)
-    CDF.append(cdf)
+    CDF.append(cdf2int(cdf).reshape(args.nbins, -1))
 
-actualBPD = []
-theoryBPD = []
-ERR = []
+CDF = torch.cat(CDF, -1).numpy()
 
-STATES = []
-for samples, _ in targetTrainLoader:
-    z, _ = f.inverse(samples)
-    parts = divide(z)
-    state = [None for _ in range(z.shape[0])]
-    for no, part in enumerate(parts):
-        for i in range(z.shape[0]):
-            symbols = part[i].reshape(-1).int().detach()
-            cdf = CDF[no].reshape(args.nbins, -1).detach()
-            for j, symbol in enumerate(symbols):
-                state[i] = coder.encoder(cdf[:, j], symbol, state[i])
 
-    import pdb
-    pdb.set_trace()
+def testBPD(loader, earlyStop=-1):
+    actualBPD = []
+    theoryBPD = []
+    ERR = []
 
-    actualBPD.append(32 * sum([len(s) for s in state]))
-    theoryBPD.append((-f.logProbability(samples).mean() / (np.prod(samples.shape[1:]) * np.log(2.))).detach().item())
-    STATES += state
-    print("Train Set Actual BPD:", actualBPD[-1], "Train Set Theory BPD:", theoryBPD[-1])
-    import pdb
-    pdb.set_trace()
+    count = 0
+    for samples, _ in targetTrainLoader:
+        count += 1
+        z, _ = f.inverse(samples)
 
-    for no in range(len(state)):
-        for j, shape in enumerate(shapeList):
-            rcn = []
-            cdf = CDF[j].reshape(args.nbins, -1).detach()
-            for i in range(shape):
-                state[no], recon_symbol = coder.decoder(cdf, state[no])
-                rcn.append(recon_symbol)
-            rcn = torch.tensor(rcn).reshape()
-    for no, cdf in reversed(enumerate(CDF)):
-        for i in range(z.shape[0]):
-            cdf = cdf.reshape(-1).detach().cpu().numpy()
-            recon = []
-            for _ in range():
-                recon.append(recon_symbol)
-            recon = torch.tensor(recon)
+        zparts = divide(z)
 
-    ERR.append()
+        state = []
+        for i in range(batch):
+            symbols = zparts[i]
+            s = rans.x_init
+            for j in reversed(range(symbols.shape[-1])):
+                cdf = CDF[:, j]
+                s = coder.encoder(cdf, symbols[j], s)
+            state.append(rans.flatten(s))
 
-actualBPD = np.array(actualBPD)
-theoryBPD = np.array(theoryBPD)
-ERR = np.array(ERR)
+        actualBPD.append(32 / (3 * 32 * 32) * np.mean([s.shape[0] for s in state]))
+        theoryBPD.append((-f.logProbability(samples).mean() / (np.prod(samples.shape[1:]) * np.log(2.))).detach().item())
 
-print("===========================SUMMARY==================================")
-print("Train Set Actual BPD:", actualBPD.mean(), "Train Set Theory BPD:", theoryBPD.mean(), "Train Set Error:", ERR.mean())
+        rcnParts = []
+        for i in range(batch):
+            s = rans.unflatten(state[i])
+            symbols = []
+            for j in range(np.prod(targetSize)):
+                cdf = CDF[:, j]
+                s, rcnSymbol = coder.decoder(cdf, s)
+                symbols.append(rcnSymbol)
+            rcnParts.append(torch.tensor(symbols).reshape(1, -1))
+        rcnParts = torch.cat(rcnParts, 0)
 
-BPD = []
-ERR = []
-for samples, _ in targetTestLoader:
-    pass
-BPD = np.array(BPD)
-ERR = np.array(ERR)
+        rcnZ = join(rcnParts)
 
-print("Test Set BPD:", BPD.mean(), "Test Set Error:", ERR.mean())
+        rcnSamples, _ = f.forward(rcnZ.float())
+
+        ERR.append(torch.abs(samples - rcnSamples).sum().item())
+        if count >= earlyStop and earlyStop > 0:
+            break
+
+    actualBPD = np.array(actualBPD)
+    theoryBPD = np.array(theoryBPD)
+    ERR = np.array(ERR)
+
+    print("===========================SUMMARY==================================")
+    print("Actual Mean BPD:", actualBPD.mean(), "Theory Mean BPD:", theoryBPD.mean(), "Mean Error:", ERR.mean())
+
+    return actualBPD, theoryBPD, ERR
+
+
+testBPD(targetTrainLoader, earlyStop=args.earlyStop)
+testBPD(targetTestLoader, earlyStop=args.earlyStop)
+

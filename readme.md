@@ -6,8 +6,6 @@
 
 - progressive_loading
 - migrate between dataset
-- double check repeat = odd
-- Main.py load model
 
 ### Zhibin Liang
 
