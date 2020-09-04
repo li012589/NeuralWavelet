@@ -186,7 +186,10 @@ for no in range(int(math.log(blockLength, 2))):
         # early break if depth is specified
         break
     if no != int(math.log(blockLength, 2)) - 1:
-        np.testing.assert_allclose(f.indexI[(no + 1) * (repeat + 1) - 1][:, 1:], f.prior.factorOutIList[no])
+        if repeat % 2 == 0:
+            np.testing.assert_allclose(f.indexI[(no + 1) * (repeat + 1) - 1][:, 1:], f.prior.factorOutIList[no])
+        else:
+            np.testing.assert_allclose(f.indexI[(no + 1) * (repeat + 1) - 1][:, :-1], f.prior.factorOutIList[no])
     else:
         np.testing.assert_allclose(f.indexI[(no + 1) * (repeat + 1) - 1], f.prior.factorOutIList[no])
 
@@ -226,10 +229,15 @@ def plotfn(f, train, test, LOSS, VALLOSS):
         _, z_ = utils.dispatch(p.factorOutIList[no], p.factorOutJList[no], z)
         zparts.append(z_)
 
-    # the inner upper left part
     _, zremain = utils.dispatch(ftest.indexI[-1], ftest.indexJ[-1], z)
     _linesize = np.sqrt(zremain.shape[-2]).astype(np.int)
-    zremain = zremain[:, :, :, :1].reshape(*zremain.shape[:-2], _linesize, _linesize)
+
+    if repeat % 2 == 0:
+        # the inner upper left part
+        zremain = zremain[:, :, :, :1].reshape(*zremain.shape[:-2], _linesize, _linesize)
+    else:
+        # the inner low right part
+        zremain = zremain[:, :, :, -1:].reshape(*zremain.shape[:-2], _linesize, _linesize)
 
     # define renorm fn
     def back01(tensor):
@@ -245,16 +253,24 @@ def plotfn(f, train, test, LOSS, VALLOSS):
 
     for i in range(_depth):
 
-        # inner parts, order: upper right, down left, down right
+        # inner parts, odd repeat order: upper left, upper right, down left; even repeat order: upper right, down left, down right
         parts = []
         for no in range(3):
             part = back01(zparts[-(i + 1)][:, :, :, no].reshape(*zremain.shape))
             parts.append(part)
 
         # piece the inner up
-        zremain = torch.cat([zremain, parts[0]], dim=-1)
-        tmp = torch.cat([parts[1], parts[2]], dim=-1)
-        zremain = torch.cat([zremain, tmp], dim=-2)
+        if repeat % 2 == 0:
+            zremain = torch.cat([zremain, parts[0]], dim=-1)
+            tmp = torch.cat([parts[1], parts[2]], dim=-1)
+            zremain = torch.cat([zremain, tmp], dim=-2)
+        else:
+            import pdb
+            pdb.set_trace()
+            tmp = torch.cat([parts[0], parts[1]], dim=-1)
+            zremain = torch.cat([parts[2], zremain], dim=-1)
+            zremain = torch.cat([tmp, zremain], dim=-2)
+
 
     # convert zremaoin to numpy array
     zremain = zremain.permute([0, 2, 3, 1]).detach().cpu().numpy()
