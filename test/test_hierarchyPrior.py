@@ -22,17 +22,34 @@ def test_hierarchyPrior():
         def _energy(self, z):
             return (torch.tensor([2])**self.element * np.prod(z.shape[2:]))
 
-    length = 8
+    length = 32
     channel = 3
     decimal = flow.ScalingNshifting(256, -128)
-    p1 = source.DiscreteLogistic([channel, 16, 3], decimal, rounding=utils.roundingWidentityGradient)
-    p2 = source.DiscreteLogistic([channel, 4, 3], decimal, rounding=utils.roundingWidentityGradient)
-    p3 = source.MixtureDiscreteLogistic([channel, 1, 4], 5, decimal, rounding=utils.roundingWidentityGradient)
+    p1 = source.DiscreteLogistic([channel, 256, 3], decimal, rounding=utils.roundingWidentityGradient)
+    p2 = source.DiscreteLogistic([channel, 64, 3], decimal, rounding=utils.roundingWidentityGradient)
+    p3 = source.DiscreteLogistic([channel, 16, 3], decimal, rounding=utils.roundingWidentityGradient)
+    p4 = source.DiscreteLogistic([channel, 4, 3], decimal, rounding=utils.roundingWidentityGradient)
+    p5 = source.MixtureDiscreteLogistic([channel, 1, 4], 5, decimal, rounding=utils.roundingWidentityGradient)
 
-    P = source.HierarchyPrior(channel, length, [p1, p2, p3], repeat=2)
+    P = source.HierarchyPrior(channel, length, [p1, p2, p3, p4, p5], repeat=1)
 
     x = P.sample(100)
     logp = P.logProbability(x)
+
+    import math
+    zparts = []
+    for no in range(int(math.log(length, 2))):
+        _, parts = utils.dispatch(P.factorOutIList[no], P.factorOutJList[no], x)
+        zparts.append(parts)
+
+    rcnX = torch.zeros_like(x)
+    for no in range(int(math.log(length, 2))):
+        part = zparts[no]
+        rcnX = utils.collect(P.factorOutIList[no], P.factorOutJList[no], rcnX, part)
+
+    assert_allclose(x.detach(), rcnX.detach())
+
+    length = 8
 
     p1 = UniTestPrior([channel, 16, 3], 1)
     p2 = UniTestPrior([channel, 4, 3], 2)
