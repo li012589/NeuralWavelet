@@ -222,7 +222,7 @@ def plotLoading(loader):
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.imshow(clip(rcnSamples[j][i]).permute([1, 2, 0]).detach().numpy())
-            plt.savefig(rootFolder + 'pic/progressivePlot_N_' + str(i) + '_P_' + str(j) + '.png', bbox_inches="tight", pad_inches=0)
+            plt.savefig(rootFolder + 'pic/proloadPlot_N_' + str(i) + '_P_' + str(j) + '.png', bbox_inches="tight", pad_inches=0)
             plt.close()
 
 
