@@ -164,7 +164,7 @@ else:
 
 # load the model
 print("load saving at " + name)
-f = torch.load(name).to(device)
+f = torch.load(name, map_location=device)
 
 shapeList = [[3, *term.shape] for term in f.prior.factorOutIList]
 
