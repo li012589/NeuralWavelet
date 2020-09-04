@@ -170,7 +170,6 @@ shapeList = [[3, *term.shape] for term in f.prior.factorOutIList]
 
 def divide(z):
     parts = []
-    testparts = []
     for no in range(int(math.log(blockLength, 2))):
         _, zpart = utils.dispatch(f.prior.factorOutIList[no], f.prior.factorOutJList[no], z)
 
@@ -194,6 +193,7 @@ def join(rcnZ):
             rcnZpart = rcnZpart + decimal.forward_(f.prior.priorList[no].mean).reshape(1, *f.prior.priorList[no].mean.shape).int() - args.nbins // 2
         retZ = utils.collect(f.prior.factorOutIList[no], f.prior.factorOutJList[no], retZ, rcnZpart.int())
     return retZ
+
 
 def cdf2int(cdf):
     return (cdf * ((1 << args.precision) - args.nbins)).int().detach() + torch.arange(args.nbins).reshape(-1, 1, 1, 1)
@@ -265,7 +265,8 @@ def testBPD(loader, earlyStop=-1):
 
     return actualBPD, theoryBPD, ERR
 
-
+print("Train Set:")
 testBPD(targetTrainLoader, earlyStop=args.earlyStop)
+print("Test Set:")
 testBPD(targetTestLoader, earlyStop=args.earlyStop)
 
