@@ -39,7 +39,7 @@ device = torch.device("cpu" if args.cuda < 0 else "cuda:" + str(args.cuda))
 
 # Creating save folder
 if args.folder is None:
-    rootFolder = './opt/default_' + args.target + "_depth_" + str(args.depth) + "_repeat_" + str(args.repeat) + "_nhidden_" + str(args.nhidden) + "_hdim_" + str(args.hdim) + "_Sprior_" + str(args.smallPrior) + "/"
+    rootFolder = './opt/default_' + args.target + "_depth_" + str(args.depth) + "_repeat_" + str(args.repeat) + "_nhidden_" + str(args.nhidden) + "_hdim_" + str(args.hdim) + "_nNICE_" + str(args.nNice) + "_nMixing_" + str(args.nMixing) + "_Sprior_" + str(args.smallPrior) + "/"
     print("No specified saving path, using", rootFolder)
 else:
     rootFolder = args.folder
