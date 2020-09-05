@@ -4,14 +4,13 @@
 
 ### Shuo-hui Li
 
-- progressive_loading
-- migrate between dataset
+- migrate encoding
+- migrate waveletPlot
+- Big model, full depth
 
 ### Zhibin Liang
 
 - Reverse decimal inter outer
-
-- CDF w/ encoder needs
 
   
 
