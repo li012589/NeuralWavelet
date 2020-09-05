@@ -2,7 +2,7 @@
 import torchvision
 import torch
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_allclose
 #import matplotlib.pyplot as plt
 
 import sys
@@ -14,7 +14,7 @@ from encoder import rans, coder
 
 
 precision = 24
-torch.manual_seed(42)
+#torch.manual_seed(42)
 
 def test_encodeDecode():
     #encode/decoder a MNIST image using its own distribution
@@ -32,7 +32,7 @@ def test_encodeDecode():
     images, _ = dataIter.next()
     images = images.float()
 
-    nBins = 512
+    nBins = 300
 
     HISTos = []
     MEANs = []
@@ -40,11 +40,10 @@ def test_encodeDecode():
     CDFs = []
 
     for i in range(batchSize):
-        import pdb
-        pdb.set_trace()
-        mean = int(images[i].mean().item())
+        mean = int(0.5 * (images[i]).max() + images[i].min())
         MEANs.append(mean)
-        histogram = torch.histc(images[i] - mean, bins=nBins, min=-nBins // 2, max=nBins // 2)
+        histogram = torch.histc(images[i] - mean, bins=nBins, min=-nBins // 2, max=nBins // 2).roll(1)
+        histogram[0] = 0
         HISTos.append(histogram)
 
         prob = histogram / np.prod(images[i].shape)
@@ -56,12 +55,17 @@ def test_encodeDecode():
         cdf = prob.numpy()
         for j in range(prob.shape[0] - 1):
             cdf[j + 1] = cdf[j] + cdf[j + 1]
-        CDFs.append(torch.from_numpy(((cdf * ((1 << precision) - nBins)).astype('int') + np.arange(nBins)).reshape(1, nBins)))
+
+        # np.arange(nBins)).reshape(1, nBins)) here to avoid zero freq in ans, add extra BPD
+        CDFs.append(torch.from_numpy((cdf * ((1 << precision) - nBins)).astype('int')
+                                     #.reshape(1, nBins)))
+                                     + np.arange(nBins)).reshape(1, nBins))
 
     MEANs = torch.tensor(MEANs).reshape(batchSize, 1)
     CDFs = torch.cat(CDFs, 0).numpy()
 
-    print("theory BPD:", np.mean(theoryBPD))
+    #print("theory BPD:", np.mean(theoryBPD))
+    tBPD = np.mean(theoryBPD)
 
     states = []
     # suppose all pixels have the same CDFs[0]
@@ -76,21 +80,20 @@ def test_encodeDecode():
         state = rans.flatten(state)
         states.append(state)
 
-    print("actual BPD:", np.mean([32 * len(term) / np.prod(images.shape[1:]) for term in states]))
-    import pdb
-    pdb.set_trace()
+    #print("actual BPD:", np.mean([32 * len(term) / np.prod(images.shape[1:]) for term in states]))
+    aBPD = np.mean([32 * len(term) / np.prod(images.shape[1:]) for term in states])
+
+    assert_allclose(tBPD, aBPD, rtol=1e-1)
+
 
     reconstruction = [[] for i in range(batchSize)]
     for i in range(batchSize):
-        symbols = images[i] - MEANs[i] + nBins//2
+        symbols = images[i] - MEANs[i] + nBins // 2
         symbols = symbols.reshape(-1).int()
         state = rans.unflatten(states[i])
-        for symbol in symbols:
+        for j in range(symbols.shape[0]):
             state, recon_symbol = coder.decoder(CDFs[i], state)
-            if symbol != recon_symbol:
-                raise ValueError
-            else:
-                reconstruction[i].append(recon_symbol + MEANs[i] - nBins//2)
+            reconstruction[i].append(recon_symbol + MEANs[i] - nBins // 2)
 
     reconstruction = torch.tensor(reconstruction)
     recon_images = torch.cat([reconstruction[i].reshape(images[i].shape) for i in range(batchSize)], dim=0)
