@@ -14,11 +14,12 @@ from encoder import rans, coder
 
 
 precision = 24
+torch.manual_seed(42)
 
 def test_encodeDecode():
     #encode/decoder a MNIST image using its own distribution
 
-    batchSize = 2
+    batchSize = 10
     lambd = lambda x: (x * 255).byte()
     trainsetTransform = torchvision.transforms.Compose([
         torchvision.transforms.ToTensor(),
@@ -29,47 +30,67 @@ def test_encodeDecode():
     trainLoader = torch.utils.data.DataLoader(trainSet, batch_size=batchSize, shuffle=True)
     dataIter = iter(trainLoader)
     images, _ = dataIter.next()
+    images = images.float()
 
     nBins = 512
-    mean = nBins / 8. # suppose this is the mean of the pixel distribution
-    histogram = torch.histc(images.float() - mean, bins=nBins, min=-nBins//2, max=nBins//2)
 
-    for i in range(len(histogram) - 1):
-        histogram[i + 1] = histogram[i] + histogram[i + 1]
+    HISTos = []
+    MEANs = []
+    theoryBPD = []
+    CDFs = []
 
-    CDF = (histogram / histogram[len(histogram) - 1]).numpy()
+    for i in range(batchSize):
+        import pdb
+        pdb.set_trace()
+        mean = int(images[i].mean().item())
+        MEANs.append(mean)
+        histogram = torch.histc(images[i] - mean, bins=nBins, min=-nBins // 2, max=nBins // 2)
+        HISTos.append(histogram)
 
-    # Compute CDFs, reweigh to give all bins at least
-    # 1 / (2^precision) probability.
-    # CDF is equal to floor[cdf * (2^precision - n_bins)] + range(n_bins)
-    # To avoid divide by zero warning when using rans.
-    CDFs = (CDF * ((1 << precision) - nBins)).astype('int') + np.arange(nBins)
+        prob = histogram / np.prod(images[i].shape)
+        logp = -torch.log2(prob)
+        logp[logp == float('inf')] = 0
+        theorySize = (logp * histogram).sum().item()
+        theoryBPD.append(theorySize / np.prod(images.shape[1:]))
+
+        cdf = prob.numpy()
+        for j in range(prob.shape[0] - 1):
+            cdf[j + 1] = cdf[j] + cdf[j + 1]
+        CDFs.append(torch.from_numpy(((cdf * ((1 << precision) - nBins)).astype('int') + np.arange(nBins)).reshape(1, nBins)))
+
+    MEANs = torch.tensor(MEANs).reshape(batchSize, 1)
+    CDFs = torch.cat(CDFs, 0).numpy()
+
+    print("theory BPD:", np.mean(theoryBPD))
 
     states = []
     # suppose all pixels have the same CDFs[0]
-    CDFs = CDFs.reshape(-1, nBins)
     CDFs = np.uint32(CDFs)
     for i in range(batchSize):
         # symbols is transformed to match the indices for the CDFs array
-        symbols = images[i] - mean + nBins//2
+        symbols = images[i] - MEANs[i] + nBins // 2
         symbols = symbols.reshape(-1).int()
         state = rans.x_init
         for j in reversed(range(len(symbols))):
-            state = coder.encoder(CDFs[0], symbols[j], state)
+            state = coder.encoder(CDFs[i], symbols[j], state)
         state = rans.flatten(state)
         states.append(state)
 
+    print("actual BPD:", np.mean([32 * len(term) / np.prod(images.shape[1:]) for term in states]))
+    import pdb
+    pdb.set_trace()
+
     reconstruction = [[] for i in range(batchSize)]
     for i in range(batchSize):
-        symbols = images[i] - mean + nBins//2
+        symbols = images[i] - MEANs[i] + nBins//2
         symbols = symbols.reshape(-1).int()
         state = rans.unflatten(states[i])
         for symbol in symbols:
-            state, recon_symbol = coder.decoder(CDFs[0], state)
+            state, recon_symbol = coder.decoder(CDFs[i], state)
             if symbol != recon_symbol:
                 raise ValueError
             else:
-                reconstruction[i].append(recon_symbol + mean - nBins//2)
+                reconstruction[i].append(recon_symbol + MEANs[i] - nBins//2)
 
     reconstruction = torch.tensor(reconstruction)
     recon_images = torch.cat([reconstruction[i].reshape(images[i].shape) for i in range(batchSize)], dim=0)
