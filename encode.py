@@ -177,12 +177,6 @@ def divide(z):
             zpart = zpart - decimal.forward_(f.prior.priorList[no].mean).reshape(1, *f.prior.priorList[no].mean.shape).int() + args.nbins // 2
         else:
             zpart = zpart - (decimal.forward_(f.prior.priorList[no].mean.permute([1, 2, 3, 0])) * torch.softmax(f.prior.priorList[no].mixing, -1)).sum(-1).reshape(1, *f.prior.priorList[no].mean.shape[1:]).int() + args.nbins // 2
-        '''
-        print(zpart.max())
-        print(zpart.min())
-        import pdb
-        pdb.set_trace()
-        '''
         parts.append(zpart.reshape(zpart.shape[0], -1).int().detach())
     return torch.cat(parts, -1).numpy()
 

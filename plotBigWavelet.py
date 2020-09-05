@@ -17,6 +17,7 @@ parser = argparse.ArgumentParser(description="")
 
 parser.add_argument("-folder", default=None, help="Path to load the trained model")
 parser.add_argument("-cuda", type=int, default=-1, help="Which device to use with -1 standing for CPU, number bigger than -1 is N.O. of GPU.")
+parser.add_argument("-depth", type=int, default=2, help="wavelet depth")
 parser.add_argument("-best", action='store_false', help="if load the best model")
 parser.add_argument("-img", default=None, help="the img path")
 
@@ -49,7 +50,20 @@ else:
 
 IMG = Image.open(args.img)
 IMG = torch.from_numpy(np.array(IMG)).permute([2, 0, 1])
-IMG = IMG.reshape(1, *IMG.shape).to(device)
+IMG = IMG.reshape(1, *IMG.shape).float().to(device)
+
+# decide which model to load
+if args.best:
+    name = max(glob.iglob(os.path.join(rootFolder, '*.saving')), key=os.path.getctime)
+else:
+    name = max(glob.iglob(os.path.join(rootFolder, 'savings', '*.saving')), key=os.path.getctime)
+
+# load the model
+print("load saving at " + name)
+loadedF = torch.load(name, map_location=device)
+
+layerList = loadedF.layerList[:(repeat + 1)]
+layerList = [layerList[no] for no in range(3)]
 
 # Define dimensions
 targetSize = IMG.shape[1:]
@@ -84,46 +98,76 @@ for n in range(int(math.log(blockLength, 2))):
 # Building the hierarchy prior
 p = source.HierarchyPrior(channel, blockLength, priorList, repeat=repeat)
 
-
-# Building NICE model inside MERA
-assert nNICE % 2 == 0
-assert depth <= int(math.log(blockLength, 2))
-
-layerList = []
 if depth == -1:
     depth = None
-# NOTE HERE: Same wavelet at each RG scale. If want different wavelet, change (repeat + 1)
-#            to depth * (repeat + 1)!
-for _ in range(repeat + 1):
-    maskList = []
-    for n in range(nNICE):
-        if n % 2 == 0:
-            b = torch.cat([torch.zeros(3 * 2 * 1), torch.ones(3 * 2 * 1)])[torch.randperm(3 * 2 * 2)].reshape(1, 3, 2, 2)
-        else:
-            b = 1 - b
-        maskList.append(b)
-    maskList = torch.cat(maskList, 0)#.to(torch.float32)
-    tList = [utils.SimpleMLPreshape([3 * 2 * 1] + [hdim] * nhidden + [3 * 2 * 1], [nn.ELU()] * nhidden + [None]) for _ in range(nNICE)]
-    layerList.append(flow.DiscreteNICE(maskList, tList, decimal, rounding))
 
 # Building MERA model
-f = flow.MERA(dimensional, blockLength, layerList, repeat, depth=depth, prior=p).to(device)
+f = flow.MERA(dimensional, blockLength, layerList, repeat, depth=args.depth, prior=p).to(device)
 
-# decide which model to load
-if args.best:
-    name = max(glob.iglob(os.path.join(rootFolder, '*.saving')), key=os.path.getctime)
+z, _ = f.inverse(IMG)
+
+assert args.depth <= int(math.log(blockLength, 2))
+
+# collect parts
+zparts = []
+for no in range(args.depth):
+    _, z_ = utils.dispatch(p.factorOutIList[no], p.factorOutJList[no], z)
+    zparts.append(z_)
+
+_, zremain = utils.dispatch(f.indexI[-1], f.indexJ[-1], z)
+_linesize = np.sqrt(zremain.shape[-2]).astype(np.int)
+
+if repeat % 2 == 0:
+    # the inner upper left part
+    zremain = zremain[:, :, :, :1].reshape(*zremain.shape[:-2], _linesize, _linesize)
 else:
-    name = max(glob.iglob(os.path.join(rootFolder, 'savings', '*.saving')), key=os.path.getctime)
+    # the inner low right part
+    zremain = zremain[:, :, :, -1:].reshape(*zremain.shape[:-2], _linesize, _linesize)
 
 
-import pdb
-pdb.set_trace()
+# define renorm fn
+def back01(tensor):
+    ten = tensor.clone()
+    ten = ten.view(ten.shape[0], -1)
+    ten -= ten.min(1, keepdim=True)[0]
+    ten /= ten.max(1, keepdim=True)[0]
+    ten = ten.view(tensor.shape)
+    return ten
 
-# load the model
-print("load saving at " + name)
-f = torch.load(name, map_location=device)
 
-import pdb
-pdb.set_trace()
+# another renorm fn
+def clip(tensor):
+    return torch.clamp(tensor, 0, 255).int()
 
+
+renormFn = back01
+
+zremain = renormFn(zremain)
+
+for i in range(args.depth):
+    # inner parts, odd repeat order: upper left, upper right, down left; even repeat order: upper right, down left, down right
+
+    parts = []
+    for no in range(3):
+        part = renormFn(zparts[-(i + 1)][:, :, :, no].reshape(*zremain.shape))
+        parts.append(part)
+
+    # piece the inner up
+    if repeat % 2 == 0:
+        zremain = torch.cat([zremain, parts[0]], dim=-1)
+        tmp = torch.cat([parts[1], parts[2]], dim=-1)
+        zremain = torch.cat([zremain, tmp], dim=-2)
+    else:
+        tmp = torch.cat([parts[0], parts[1]], dim=-1)
+        zremain = torch.cat([parts[2], zremain], dim=-1)
+        zremain = torch.cat([tmp, zremain], dim=-2)
+
+# convert zremaoin to numpy array
+zremain = zremain.permute([0, 2, 3, 1]).detach().cpu().numpy()
+
+waveletPlot = plt.figure(figsize=(8, 8))
+waveletAx = waveletPlot.add_subplot(111)
+waveletAx.imshow(zremain[0])
+plt.savefig(rootFolder + 'pic/BigWavelet.png', bbox_inches="tight", pad_inches=0)
+plt.close()
 
