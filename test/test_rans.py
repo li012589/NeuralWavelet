@@ -32,7 +32,7 @@ def test_encodeDecode():
     images, _ = dataIter.next()
     images = images.float()
 
-    nBins = 512
+    nBins = 510 # 255 * 2, only half is used, can be optimized
 
     HISTos = []
     MEANs = []
@@ -42,8 +42,8 @@ def test_encodeDecode():
     for i in range(batchSize):
         mean = int(0.5 * (images[i]).max() + images[i].min())
         MEANs.append(mean)
-        histogram = torch.histc(images[i] - mean, bins=nBins, min=-nBins // 2, max=nBins // 2)#.roll(1)
-        # histogram[0] = 0
+
+        histogram = torch.histc(images[i] - mean, bins=nBins, min=-nBins // 2, max=nBins // 2)
         HISTos.append(histogram)
 
         prob = histogram / np.prod(images[i].shape)
@@ -57,8 +57,7 @@ def test_encodeDecode():
             cdf[j + 1] = cdf[j] + cdf[j + 1]
 
         # np.arange(nBins)).reshape(1, nBins)) here to avoid zero freq in ans, add extra BPD
-        CDFs.append(torch.from_numpy((cdf * ((1 << precision) - nBins)).astype('int')
-                                     .reshape(1, nBins)))
+        CDFs.append(torch.from_numpy((cdf * ((1 << precision))).astype('int').reshape(1, nBins)))
                                      # + np.arange(nBins)).reshape(1, nBins))
 
     MEANs = torch.tensor(MEANs).reshape(batchSize, 1)
