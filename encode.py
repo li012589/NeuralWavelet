@@ -102,7 +102,7 @@ elif target == "ImageNet64":
     targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=True)
     targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=True)
 
-elif args.target == "MNIST":
+elif target == "MNIST":
     pass
 else:
     raise Exception("No such target")
