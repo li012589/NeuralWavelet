@@ -89,7 +89,7 @@ if target == "CIFAR":
     testTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=False, download=True, transform=trainsetTransform)
     targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=True)
     targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=False)
-elif args.target == "ImageNet32":
+elif target == "ImageNet32":
     # Define dimensions
     targetSize = [3, 32, 32]
     dimensional = 2
@@ -108,7 +108,7 @@ elif args.target == "ImageNet32":
     targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=True)
     targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=False)
 
-elif args.target == "ImageNet64":
+elif target == "ImageNet64":
     # Define dimensions
     targetSize = [3, 64, 64]
     dimensional = 2
@@ -127,7 +127,7 @@ elif args.target == "ImageNet64":
     targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=True)
     targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=False)
 
-elif args.target == "MNIST":
+elif target == "MNIST":
     pass
 else:
     raise Exception("No such target")
