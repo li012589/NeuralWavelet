@@ -11,11 +11,13 @@ from encoder import rans, coder
 from utils import cdfDiscreteLogitstic, cdfMixDiscreteLogistic
 from matplotlib import pyplot as plt
 
+torch.manual_seed(42)
 
 parser = argparse.ArgumentParser(description="")
 
 parser.add_argument("-folder", default=None, help="Path to load the trained model")
 parser.add_argument("-cuda", type=int, default=-1, help="Which device to use with -1 standing for CPU, number bigger than -1 is N.O. of GPU.")
+parser.add_argument("-baseScale", type=float, default=-2.0, help="exp scaling of distribution's logscale to achieve better quality")
 parser.add_argument("-best", action='store_false', help="if load the best model")
 parser.add_argument("-num", type=int, default=10, help="num of image to demo")
 
@@ -195,7 +197,9 @@ def plotLoading(loader):
     for no in range(int(math.log(blockLength, 2))):
         tmpZ = []
         for i in range(no):
-            tmpZ.append(f.prior.priorList[i].sample(batch))
+            #tmpZ.append(f.prior.priorList[i].sample(batch))
+            sampledDetails = utils.sampleDiscreteLogistic([batch] + f.prior.priorList[i].nvars, f.prior.priorList[i].mean, f.prior.priorList[i].logscale + args.baseScale, decimal=f.prior.priorList[i].decimal)
+            tmpZ.append(sampledDetails)
         for i in reversed(range(int(math.log(blockLength, 2)) - len(tmpZ))):
             tmpZ.append(zParts[-(i + 1)])
         augmenZ.append(join(tmpZ))
