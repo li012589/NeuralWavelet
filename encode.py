@@ -234,7 +234,7 @@ def testBPD(loader, earlyStop=-1):
                 s = coder.encoder(cdf, symbols[j], s)
             state.append(rans.flatten(s))
 
-        actualBPD.append(32 / (3 * 32 * 32) * np.mean([s.shape[0] for s in state]))
+        actualBPD.append(32 / (np.prod(samples.shape[1:])) * np.mean([s.shape[0] for s in state]))
         theoryBPD.append((-f.logProbability(samples).mean() / (np.prod(samples.shape[1:]) * np.log(2.))).detach().item())
 
         rcnParts = []
