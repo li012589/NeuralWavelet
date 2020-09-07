@@ -21,6 +21,7 @@ group.add_argument("-hdim", type=int, default=50, help="layer dimension of MLP i
 group.add_argument("-nNICE", type=int, default=2, help="num of NICE layers of each RG scale (even number only)")
 group.add_argument("-nMixing", type=int, default=5, help="num of mixing distributions of last sub-priors")
 group.add_argument("-smallPrior", action='store_true', help="use a smaller prior to save params")
+group.add_argument("-bigModel", action='store_true', help="use big version of model")
 
 group = parser.add_argument_group('Learning  parameters')
 group.add_argument("-epoch", type=int, default=400, help="num of epoches to train")
@@ -39,7 +40,7 @@ device = torch.device("cpu" if args.cuda < 0 else "cuda:" + str(args.cuda))
 
 # Creating save folder
 if args.folder is None:
-    rootFolder = './opt/default_' + args.target + "_depth_" + str(args.depth) + "_repeat_" + str(args.repeat) + "_nhidden_" + str(args.nhidden) + "_hdim_" + str(args.hdim) + "_nNICE_" + str(args.nNICE) + "_nMixing_" + str(args.nMixing) + "_Sprior_" + str(args.smallPrior) + "/"
+    rootFolder = './opt/default_' + args.target + "_depth_" + str(args.depth) + "_repeat_" + str(args.repeat) + "_nhidden_" + str(args.nhidden) + "_hdim_" + str(args.hdim) + "_nNICE_" + str(args.nNICE) + "_nMixing_" + str(args.nMixing) + "_Sprior_" + str(args.smallPrior) + '_bigM_' + str(args.bigModel) + "/"
     print("No specified saving path, using", rootFolder)
 else:
     rootFolder = args.folder
@@ -57,12 +58,13 @@ if not args.load:
     nNICE = args.nNICE
     nMixing = args.nMixing
     smallPrior = args.smallPrior
+    bigModel = args.bigModel
     epoch = args.epoch
     batch = args.batch
     savePeriod = args.savePeriod
     lr = args.lr
     with open(rootFolder + "/parameter.json", "w") as f:
-        config = {'target': target, 'depth': depth, 'repeat': repeat, 'nhidden': nhidden, 'hdim': hdim, 'nNICE': nNICE, 'nMixing': nMixing, 'smallPrior': smallPrior, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr}
+        config = {'target': target, 'depth': depth, 'repeat': repeat, 'nhidden': nhidden, 'hdim': hdim, 'nNICE': nNICE, 'nMixing': nMixing, 'smallPrior': smallPrior, 'bigModel': bigModel, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr}
         json.dump(config, f)
 else:
     # load saved parameters, and decoding them to mem
@@ -165,7 +167,16 @@ if depth == -1:
     depth = None
 # NOTE HERE: Same wavelet at each RG scale. If want different wavelet, change (repeat + 1)
 #            to depth * (repeat + 1)!
-for _ in range(repeat + 1):
+
+if bigModel:
+    if depth is None:
+        _layerNum = (repeat + 1) * int(math.log(blockLength, 2))
+    else:
+        _layerNum = (repeat + 1) * depth
+else:
+    _layerNum = repeat + 1
+
+for _ in range(_layerNum):
     maskList = []
     for n in range(nNICE):
         if n % 2 == 0:
