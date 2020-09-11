@@ -35,6 +35,8 @@ class HierarchyPrior(Source):
             self.factorOutIList = [term[:, :-1] if no != len(indexIList) - 1 else term for no, term in enumerate(indexIList)]
             self.factorOutJList = [term[:, :-1] if no != len(indexJList) - 1 else term for no, term in enumerate(indexJList)]
         '''
+        self.indexIList = indexIList
+        self.indexJList = indexJList
 
         assert len(priorList) == len(self.factorOutIList)
 
@@ -66,18 +68,6 @@ class ParameterizedHierarchyPrior(HierarchyPrior):
         super(ParameterizedHierarchyPrior, self).__init__(channel, length, priorList, depth, repeat, K, name)
         self.meanNNlist = torch.nn.ModuleList(meanNNlsit)
         self.scaleNNlist = torch.nn.ModuleList(scaleNNlist)
-        kernelSize = 2
-        shape = [length, length]
-        if depth is None:
-            depth = int(math.log(length, 2))
-
-        indexList = []
-
-        for no in range(depth):
-            indexList.append(getIndeices(shape, kernelSize, kernelSize, kernelSize * (kernelSize**no), kernelSize**no, 0))
-
-        self.indexIList = [item[0] for item in indexList]
-        self.indexJList = [item[1] for item in indexList]
 
         assert len(self.scaleNNlist) == len(self.priorList) - 1
 
@@ -91,10 +81,9 @@ class ParameterizedHierarchyPrior(HierarchyPrior):
                 _, z_ = dispatch(self.factorOutIList[no], self.factorOutJList[no], z)
                 logp = logp + self.priorList[no]._energy(z_)
             else:
-                _, z_pre = dispatch(self.indexIList[no - 1], self.indexJList[no - 1], z)
+                _, z_pre = dispatch(self.indexIList[no + 1], self.indexJList[no + 1], z)
                 _, z_ = dispatch(self.factorOutIList[no], self.factorOutJList[no], z)
-                import pdb
-                pdb.set_trace()
+                z_pre = z_pre.reshape(z_.shape[0], -1)
                 mean = self.meanNNlist[no](z_pre).reshape(*z_.shape)
                 logscale = self.scaleNNlist[no](z_pre).reshape(*z_.shape)
                 self.priorList[no].mean = torch.nn.Parameter(mean)
