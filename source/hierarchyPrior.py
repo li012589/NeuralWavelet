@@ -15,26 +15,12 @@ class HierarchyPrior(Source):
         indexList = []
         for no in range(depth):
             indexList.append(getIndeices(shape, kernelSize, kernelSize, kernelSize * (kernelSize**no), kernelSize**no, 0))
-            '''
-            if repeat % 2 == 0:
-                indexList.append(getIndeices(shape, kernelSize, kernelSize, kernelSize * (kernelSize**no), kernelSize**no, 0))
-            else:
-                indexList.append(getIndeices(shape, kernelSize, kernelSize, kernelSize * (kernelSize**no), kernelSize**no, kernelSize**no))
-            '''
         indexIList = [item[0] for item in indexList]
         indexJList = [item[1] for item in indexList]
 
         self.factorOutIList = [term[:, 1:] if no != len(indexIList) - 1 else term for no, term in enumerate(indexIList)]
         self.factorOutJList = [term[:, 1:] if no != len(indexJList) - 1 else term for no, term in enumerate(indexJList)]
 
-        '''
-        if repeat % 2 == 0:
-            self.factorOutIList = [term[:, 1:] if no != len(indexIList) - 1 else term for no, term in enumerate(indexIList)]
-            self.factorOutJList = [term[:, 1:] if no != len(indexJList) - 1 else term for no, term in enumerate(indexJList)]
-        else:
-            self.factorOutIList = [term[:, :-1] if no != len(indexIList) - 1 else term for no, term in enumerate(indexIList)]
-            self.factorOutJList = [term[:, :-1] if no != len(indexJList) - 1 else term for no, term in enumerate(indexJList)]
-        '''
         self.indexIList = indexIList
         self.indexJList = indexJList
 
