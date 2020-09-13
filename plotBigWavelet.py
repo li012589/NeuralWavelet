@@ -136,11 +136,17 @@ def back01(tensor):
 
 
 # another renorm fn
-def clip(tensor):
-    return torch.clamp(tensor, 0, 255).int()
+def clip(tensor, l=0, h=255):
+    return torch.clamp(tensor, l, h).int()
 
 
-renormFn = back01
+# yet another renorm fn
+def batchNorm(tensor):
+    m = nn.BatchNorm2d(tensor.shape[1], affine=False)
+    return m(tensor).float() + 1.0
+
+
+renormFn = lambda x: back01(batchNorm(x))
 
 zremain = renormFn(zremain)
 
