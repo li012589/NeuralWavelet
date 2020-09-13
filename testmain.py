@@ -146,8 +146,8 @@ for n in range(int(math.log(blockLength, 2))):
         if smallPrior:
             priorList.append(source.DiscreteLogistic([channel, 1, 3], decimal, rounding, train=False))
         else:
-            meanNNlist.append(utils.SimpleMLP([channel * _length // 4 * 4, channel * _length // 4 * 4 * 4, channel * _length // 4 * 4 * 2, channel * _length * 3], [nn.ELU()] * 2 + [None]))
-            scaleNNlist.append(utils.SimpleMLP([channel * _length // 4 * 4, channel * _length // 4 * 4 * 4, channel * _length // 4 * 4 * 2, channel * _length * 3], [nn.ELU()] * 3))
+            meanNNlist.append(utils.SimpleMLP([channel * _length // 4 * 4, channel * _length * 3], [nn.Sigmoid()]))
+            scaleNNlist.append(utils.SimpleMLP([channel * _length // 4 * 4, channel * _length * 3], [nn.Sigmoid()]))
             priorList.append(source.DiscreteLogistic([channel, _length, 3], decimal, rounding, train=False))
     elif n == depth - 1:
         # if depth is specified, the last prior
