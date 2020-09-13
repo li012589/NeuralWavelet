@@ -2,6 +2,7 @@ import math
 import torch
 from utils import getIndeices, dispatch, collect
 from .source import Source
+import utils
 
 
 class HierarchyPrior(Source):
@@ -54,6 +55,7 @@ class ParameterizedHierarchyPrior(HierarchyPrior):
         super(ParameterizedHierarchyPrior, self).__init__(channel, length, priorList, depth, repeat, K, name)
         self.meanNNlist = torch.nn.ModuleList(meanNNlsit)
         self.scaleNNlist = torch.nn.ModuleList(scaleNNlist)
+        self.decimal = priorList[0].decimal
 
         assert len(self.scaleNNlist) == len(self.priorList) - 1
 
@@ -72,8 +74,8 @@ class ParameterizedHierarchyPrior(HierarchyPrior):
                 z_pre = z_pre.reshape(z_.shape[0], -1)
                 mean = self.meanNNlist[no](z_pre).reshape(*z_.shape)
                 logscale = self.scaleNNlist[no](z_pre).reshape(*z_.shape)
-                self.priorList[no].mean = torch.nn.Parameter(mean)
-                self.priorList[no].logscale = torch.nn.Parameter(logscale)
-                logp = logp + self.priorList[no]._energy(z_)
+
+                _logp = -utils.logDiscreteLogistic(z_, mean, logscale, self.decimal).reshape(z_.shape[0], -1).sum(-1)
+                logp = logp + _logp
         return logp
 
