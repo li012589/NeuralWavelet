@@ -56,6 +56,7 @@ class ParameterizedHierarchyPrior(HierarchyPrior):
         self.meanNNlist = torch.nn.ModuleList(meanNNlsit)
         self.scaleNNlist = torch.nn.ModuleList(scaleNNlist)
         self.decimal = priorList[0].decimal
+        self.batchNorms = torch.nn.ModuleList([torch.nn.BatchNorm2d(channel) for _ in range(len(self.priorList))])
 
         assert len(self.scaleNNlist) == len(self.priorList) - 1
 
@@ -71,6 +72,7 @@ class ParameterizedHierarchyPrior(HierarchyPrior):
             else:
                 _, z_pre = dispatch(self.indexIList[no + 1], self.indexJList[no + 1], z)
                 _, z_ = dispatch(self.factorOutIList[no], self.factorOutJList[no], z)
+                z_pre = self.batchNorms[no](z_pre)
                 z_pre = z_pre.reshape(z_.shape[0], -1)
                 mean = self.meanNNlist[no](z_pre).reshape(*z_.shape)
                 logscale = self.scaleNNlist[no](z_pre).reshape(*z_.shape)
