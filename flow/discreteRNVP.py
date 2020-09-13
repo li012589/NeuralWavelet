@@ -58,8 +58,6 @@ class DiscreteRNVP(Flow):
             s = self.sList[i](zB)
             assert_array_equal(t.shape, s.shape)
             assert_array_equal(zB.shape, s.shape)
-            import pdb
-            pdb.set_trace()
             zA = zA - self.rounding(t + zA * torch.exp(-s))
             z = z.masked_scatter(mask, zA).contiguous()
         return z, forwardLogjac

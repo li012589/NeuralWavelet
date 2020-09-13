@@ -146,8 +146,8 @@ for n in range(int(math.log(blockLength, 2))):
         if smallPrior:
             priorList.append(source.DiscreteLogistic([channel, 1, 3], decimal, rounding, train=False))
         else:
-            meanNNlist.append(utils.SimpleMLP([channel * _length // 4 * 4, channel * _length * 3], [nn.Sigmoid()]))
-            scaleNNlist.append(utils.SimpleMLP([channel * _length // 4 * 4, channel * _length * 3], [nn.Sigmoid()]))
+            meanNNlist.append(nn.Sequential(nn.BatchNorm1d(channel), utils.SimpleMLP([channel * _length // 4 * 4, channel * _length * 3], [nn.Sigmoid()])))
+            scaleNNlist.append(nn.Sequential(nn.BatchNorm1d(channel), utils.SimpleMLP([channel * _length // 4 * 4, channel * _length * 3], [nn.Sigmoid()])))
             priorList.append(source.DiscreteLogistic([channel, _length, 3], decimal, rounding, train=False))
     elif n == depth - 1:
         # if depth is specified, the last prior
@@ -184,12 +184,12 @@ for _ in range(_layerNum):
     maskList = []
     for n in range(nNICE):
         if n % 2 == 0:
-            b = torch.cat([torch.zeros(3 * 2 * 1), torch.ones(3 * 2 * 1)])[torch.randperm(3 * 2 * 2)].reshape(1, 3, 2, 2)
+            b = torch.cat([torch.cat([torch.zeros(2 * 1), torch.ones(2 * 1)])[torch.randperm(1 * 2 * 2)].reshape(1,1,2,2) for _ in range(channel)], dim=1)
         else:
             b = 1 - b
         maskList.append(b)
     maskList = torch.cat(maskList, 0)#.to(torch.float32)
-    tList = [utils.SimpleMLPreshape([3 * 2 * 1] + [hdim] * nhidden + [3 * 2 * 1], [nn.ELU()] * nhidden + [None]) for _ in range(nNICE)]
+    tList = [nn.Sequential(nn.BatchNorm1d(channel), utils.SimpleMLPreshape([3 * 2 * 1] + [hdim] * nhidden + [3 * 2 * 1], [nn.ELU()] * nhidden + [None])) for _ in range(nNICE)]
     layerList.append(flow.DiscreteNICE(maskList, tList, decimal, rounding))
 
 # Building MERA model

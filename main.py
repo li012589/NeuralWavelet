@@ -180,17 +180,19 @@ for _ in range(_layerNum):
     maskList = []
     for n in range(nNICE):
         if n % 2 == 0:
-            b = torch.cat([torch.zeros(3 * 2 * 1), torch.ones(3 * 2 * 1)])[torch.randperm(3 * 2 * 2)].reshape(1, 3, 2, 2)
+            b = torch.cat([torch.cat([torch.zeros(2 * 1), torch.ones(2 * 1)])[torch.randperm(1 * 2 * 2)].reshape(1,1,2,2) for _ in range(channel)], dim=1)
         else:
             b = 1 - b
         maskList.append(b)
     maskList = torch.cat(maskList, 0)#.to(torch.float32)
-    tList = [utils.SimpleMLPreshape([3 * 2 * 1] + [hdim] * nhidden + [3 * 2 * 1], [nn.ELU()] * nhidden + [None]) for _ in range(nNICE)]
+    tList = [nn.Sequential(nn.BatchNorm1d(channel), utils.SimpleMLPreshape([3 * 2 * 1] + [hdim] * nhidden + [3 * 2 * 1], [nn.ELU()] * nhidden + [None])) for _ in range(nNICE)]
     layerList.append(flow.DiscreteNICE(maskList, tList, decimal, rounding))
 
 # Building MERA model
 f = flow.MERA(dimensional, blockLength, layerList, repeat, depth=depth, prior=p).to(device)
 
+# new init for priorList, skip the sanity check for now
+'''
 # sanity check of f and it's prior
 for no in range(int(math.log(blockLength, 2))):
     if no == depth:
@@ -203,6 +205,7 @@ for no in range(int(math.log(blockLength, 2))):
             np.testing.assert_allclose(f.indexI[(no + 1) * (repeat + 1) - 1][:, :-1], f.prior.factorOutIList[no])
     else:
         np.testing.assert_allclose(f.indexI[(no + 1) * (repeat + 1) - 1], f.prior.factorOutIList[no])
+'''
 
 # Define plot function
 def plotfn(f, train, test, LOSS, VALLOSS):

@@ -22,8 +22,8 @@ class DiscreteNICE(Flow):
         for i in range(len(self.tList)):
             maskR = (1 - self.maskList[i]).bool()
             mask = self.maskList[i].bool()
-            yA = torch.masked_select(y, mask).reshape(y.shape[0], -1)
-            yB = self.decimal.inverse_(torch.masked_select(y, maskR).reshape(y.shape[0], -1))
+            yA = torch.masked_select(y, mask).reshape(y.shape[0], y.shape[1], -1)
+            yB = self.decimal.inverse_(torch.masked_select(y, maskR).reshape(y.shape[0], y.shape[1], -1))
 
             t = self.decimal.forward_(self.tList[i](yB))
             assert_array_equal(t.shape, yB.shape)
@@ -37,8 +37,8 @@ class DiscreteNICE(Flow):
         for i in reversed(range(len(self.tList))):
             maskR = (1 - self.maskList[i]).bool()
             mask = self.maskList[i].bool()
-            zA = torch.masked_select(z, mask).reshape(z.shape[0], -1)
-            zB = self.decimal.inverse_(torch.masked_select(z, maskR).reshape(z.shape[0], -1))
+            zA = torch.masked_select(z, mask).reshape(z.shape[0], z.shape[1], -1)
+            zB = self.decimal.inverse_(torch.masked_select(z, maskR).reshape(z.shape[0], z.shape[1], -1))
 
             t = self.decimal.forward_(self.tList[i](zB))
             assert_array_equal(t.shape, zB.shape)
