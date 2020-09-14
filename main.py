@@ -192,8 +192,6 @@ for _ in range(_layerNum):
     tList = [utils.SimpleMLPreshape([3 * 2 * 1] + [hdim] * nhidden + [3 * 2 * 1], [nn.ELU()] * nhidden + [None], initMethod=initMethod) for _ in range(nNICE)]
     layerList.append(flow.DiscreteNICE(maskList, tList, decimal, rounding))
 
-import pdb
-pdb.set_trace()
 # Building MERA model
 f = flow.MERA(dimensional, blockLength, layerList, repeat, depth=depth, prior=p).to(device)
 
