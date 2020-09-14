@@ -128,7 +128,7 @@ else:
 # define renorm fn
 def back01(tensor):
     ten = tensor.clone()
-    ten = ten.view(ten.shape[0], -1)
+    ten = ten.view(ten.shape[0] * ten.shape[1], -1)
     ten -= ten.min(1, keepdim=True)[0]
     ten /= ten.max(1, keepdim=True)[0]
     ten = ten.view(tensor.shape)
