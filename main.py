@@ -260,21 +260,33 @@ def plotfn(f, train, test, LOSS, VALLOSS):
     # define renorm fn
     def back01(tensor):
         ten = tensor.clone()
-        ten = ten.view(ten.shape[0], -1)
+        ten = ten.view(ten.shape[0] * ten.shape[1], -1)
         ten -= ten.min(1, keepdim=True)[0]
         ten /= ten.max(1, keepdim=True)[0]
         ten = ten.view(tensor.shape)
         return ten
 
+    # another renorm fn
+    def clip(tensor, l=0, h=255):
+        return torch.clamp(tensor, l, h).int()
+
+    # yet another renorm fn
+    def batchNorm(tensor):
+        m = nn.BatchNorm2d(tensor.shape[1], affine=False)
+        return m(tensor).float() + 1.0
+
+
+    renormFn = lambda x: back01(batchNorm(x))
+
     # norm the remain
-    zremain = back01(zremain)
+    zremain = renormFn(zremain)
 
     for i in range(_depth):
 
         # inner parts, odd repeat order: upper left, upper right, down left; even repeat order: upper right, down left, down right
         parts = []
         for no in range(3):
-            part = back01(zparts[-(i + 1)][:, :, :, no].reshape(*zremain.shape))
+            part = renormFn(zparts[-(i + 1)][:, :, :, no].reshape(*zremain.shape))
             parts.append(part)
 
         # piece the inner up
