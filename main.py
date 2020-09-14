@@ -165,8 +165,12 @@ assert depth <= int(math.log(blockLength, 2))
 layerList = []
 if depth == -1:
     depth = None
-# NOTE HERE: Same wavelet at each RG scale. If want different wavelet, change (repeat + 1)
-#            to depth * (repeat + 1)!
+
+# define the way to init parameters in NN
+def initMethod(weight, bias, num):
+    torch.nn.init.sparse_(weight, sparsity=0.1)
+    torch.nn.init.zeros_(bias)
+
 
 if bigModel:
     if depth is None:
@@ -185,9 +189,11 @@ for _ in range(_layerNum):
             b = 1 - b
         maskList.append(b)
     maskList = torch.cat(maskList, 0)#.to(torch.float32)
-    tList = [nn.Sequential(nn.BatchNorm1d(channel), utils.SimpleMLPreshape([3 * 2 * 1] + [hdim] * nhidden + [3 * 2 * 1], [nn.ELU()] * nhidden + [None])) for _ in range(nNICE)]
+    tList = [utils.SimpleMLPreshape([3 * 2 * 1] + [hdim] * nhidden + [3 * 2 * 1], [nn.ELU()] * nhidden + [None], initMethod=initMethod) for _ in range(nNICE)]
     layerList.append(flow.DiscreteNICE(maskList, tList, decimal, rounding))
 
+import pdb
+pdb.set_trace()
 # Building MERA model
 f = flow.MERA(dimensional, blockLength, layerList, repeat, depth=depth, prior=p).to(device)
 

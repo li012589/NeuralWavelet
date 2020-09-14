@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class SimpleMLP(nn.Module):
-    def __init__(self,dimsList,activation=None,name="SimpleMLP"):
+    def __init__(self, dimsList, activation=None, initMethod=None, name="SimpleMLP"):
         super(SimpleMLP,self).__init__()
         if activation is None:
             activation = [nn.ReLU() for _ in range(len(dimsList)-2)]
@@ -14,6 +14,8 @@ class SimpleMLP(nn.Module):
         self.name = name
         for no in range(len(activation)):
             layerList.append(nn.Linear(dimsList[no],dimsList[no+1]))
+            if initMethod is not None:
+                initMethod(layerList[-1].weight.data, layerList[-1].bias.data, no)
             if no == len(activation)-1 and activation[no] is None:
                 continue
             layerList.append(activation[no])
