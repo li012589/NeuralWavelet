@@ -174,6 +174,7 @@ zremain = zremain.permute([0, 2, 3, 1]).detach().cpu().numpy()
 waveletPlot = plt.figure(figsize=(8, 8))
 waveletAx = waveletPlot.add_subplot(111)
 waveletAx.imshow(zremain[0])
-plt.savefig(rootFolder + 'pic/BigWavelet.png', bbox_inches="tight", pad_inches=0)
+plt.axis('off')
+plt.savefig(rootFolder + 'pic/BigWavelet.pdf', bbox_inches="tight", pad_inches=0)
 plt.close()
 
