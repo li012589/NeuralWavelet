@@ -168,8 +168,9 @@ if depth == -1:
 
 # define the way to init parameters in NN
 def initMethod(weight, bias, num):
-    torch.nn.init.sparse_(weight, sparsity=0.1)
-    torch.nn.init.zeros_(bias)
+    if num == nhidden:
+        torch.nn.init.sparse_(weight, sparsity=0.1)
+        torch.nn.init.zeros_(bias)
 
 
 if bigModel:
@@ -272,7 +273,7 @@ def plotfn(f, train, test, LOSS, VALLOSS):
 
     # yet another renorm fn
     def batchNorm(tensor):
-        m = nn.BatchNorm2d(tensor.shape[1], affine=False)
+        m = nn.BatchNorm2d(tensor.shape[1], affine=False).to(tensor)
         return m(tensor).float() + 1.0
 
 

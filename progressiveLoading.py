@@ -221,11 +221,12 @@ def plotLoading(loader):
     def clip(tensor):
         return torch.clamp(tensor, 0, 255).int()
 
-    for i in range(rcnSamples.shape[0]):
+    for i in range(rcnSamples.shape[1]):
         for j in range(int(math.log(blockLength, 2))):
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.imshow(clip(rcnSamples[j][i]).permute([1, 2, 0]).detach().numpy())
+            plt.axis('off')
             plt.savefig(rootFolder + 'pic/proloadPlot_N_' + str(i) + '_P_' + str(j) + '.png', bbox_inches="tight", pad_inches=0)
             plt.close()
 
