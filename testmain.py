@@ -205,7 +205,7 @@ for no in range(int(math.log(blockLength, 2))):
     torch.nn.init.zeros_(meanNNlist[-1][-2].bias)
 
 # Building MERA model
-f = flow.ParameterizedMERA(dimensional, blockLength, layerList, meanNNlist, scaleNNlist, repeat, depth=depth, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+f = flow.ParameterizedMERA(dimensional, blockLength, layerList, meanNNlist, scaleNNlist, nMixing, repeat, depth=depth, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
 
 # new init for priorList, skip the sanity check for now
 '''
