@@ -65,11 +65,11 @@ class ParameterizedMERA(ParameterizedHierarchyBijector):
         assert len(meanNNlist) == len(meanNNlist)
 
         if len(meanNNlist) == 1:
-            meanNNlist = meanNNlist * depth
-            scaleNNlist = scaleNNlist * depth
+            meanNNlist = meanNNlist * (depth - 1)
+            scaleNNlist = scaleNNlist * (depth - 1)
 
         assert len(layerList) == len(indexIList)
-        assert len(meanNNlist) == depth
+        assert len(meanNNlist) == depth - 1
 
         if kernelDim == 2:
             kernelShape = [kernelSize, kernelSize]
