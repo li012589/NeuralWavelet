@@ -9,7 +9,6 @@ class Flow(nn.Module):
         super(Flow, self).__init__()
         self.name = name
         self.prior = prior
-        self.callCounter = 0
 
     def __call__(self,*args,**kargs):
         return self.sample(*args,**kargs)
@@ -24,7 +23,6 @@ class Flow(nn.Module):
         return x,logp-logp_
 
     def logProbability(self,x,K=None):
-        self.callCounter += 1
         z,logp = self.inverse(x)
         if self.prior is not None:
             return self.prior.logProbability(z,K)+logp
