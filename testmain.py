@@ -198,7 +198,13 @@ for _ in range(_layerNum):
 
 meanNNlist = []
 scaleNNlist = []
-for no in range(int(math.log(blockLength, 2))):
+if bigModel:
+    for no in range(int(math.log(blockLength, 2))):
+        meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
+        scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
+        torch.nn.init.zeros_(meanNNlist[-1][-2].weight)
+        torch.nn.init.zeros_(meanNNlist[-1][-2].bias)
+else:
     meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
     scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
     torch.nn.init.zeros_(meanNNlist[-1][-2].weight)
