@@ -53,10 +53,11 @@ class HierarchyBijector(Flow):
 
 
 class ParameterizedHierarchyBijector(HierarchyBijector):
-    def __init__(self, kernelShape, indexI, indexJ, layerList, meanNNlist, scaleNNlist, prior=None, name="ParameterizedHierarchyBijector"):
+    def __init__(self, kernelShape, indexI, indexJ, layerList, meanNNlist, scaleNNlist, decimal, prior=None, name="ParameterizedHierarchyBijector"):
         super(ParameterizedHierarchyBijector, self).__init__(kernelShape, indexI, indexJ, layerList, prior, name)
         self.meanNNlist = torch.nn.ModuleList(meanNNlist)
         self.scaleNNlist = torch.nn.ModuleList(scaleNNlist)
+        self.decimal = decimal
 
     def inverse(self, x):
         batchSize = x.shape[0]
@@ -68,9 +69,15 @@ class ParameterizedHierarchyBijector(HierarchyBijector):
             x, x_ = dispatch(self.indexI[no], self.indexJ[no], x)
             if no % (self.repeat + 1) == 0 and no != 0 and no != len(self.indexI) - 1:
                 tmpx_ = form(x_)
-                self.meanList.append(reform(self.meanNNlist[no // (self.repeat + 1) - 1](tmpx_)))
-                self.scaleList.append(reform(self.scaleNNlist[no // (self.repeat + 1) - 1](tmpx_)))
+                self.meanList.append(reform(self.meanNNlist[no // (self.repeat + 1) - 1](self.decimal.inverse_(tmpx_))))
+                self.scaleList.append(reform(self.scaleNNlist[no // (self.repeat + 1) - 1](self.decimal.inverse_(tmpx_))))
             x_, logProbability = self.layerList[no].inverse(x_.permute([0, 2, 1, 3]).reshape(-1, channelSize, *self.kernelShape))
+
+            '''
+            sanity check, TO BE REMOVED!!!
+            '''
+            assert np.all(np.equal(np.mod(x_.cpu().detach().numpy(), 1), 0))
+
             inverseLogjac += logProbability.reshape(batchSize, -1).sum(1)
             x_ = x_.reshape(x.shape[0], -1, channelSize, np.prod(self.kernelShape)).permute([0, 2, 1, 3])
             x = collect(self.indexI[no], self.indexJ[no], x, x_)
@@ -90,6 +97,12 @@ class ParameterizedHierarchyBijector(HierarchyBijector):
 
     def logProbability(self, x, K=None):
         z, logp = self.inverse(x)
+
+        '''
+        sanity check, TO BE REMOVED!!!
+        '''
+        assert np.all(np.equal(np.mod(z.cpu().detach().numpy(), 1), 0))
+
         if self.prior is not None:
             return self.prior.logProbability(z, K, self.meanList, self.scaleList) + logp
         return logp

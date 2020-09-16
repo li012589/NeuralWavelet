@@ -40,7 +40,7 @@ device = torch.device("cpu" if args.cuda < 0 else "cuda:" + str(args.cuda))
 
 # Creating save folder
 if args.folder is None:
-    rootFolder = './opt/default_' + args.target + "_depth_" + str(args.depth) + "_repeat_" + str(args.repeat) + "_nhidden_" + str(args.nhidden) + "_hdim_" + str(args.hdim) + "_nNICE_" + str(args.nNICE) + "_nMixing_" + str(args.nMixing) + "_Sprior_" + str(args.smallPrior) + '_bigM_' + str(args.bigModel) + "/"
+    rootFolder = './opt/test_default_' + args.target + "_depth_" + str(args.depth) + "_repeat_" + str(args.repeat) + "_nhidden_" + str(args.nhidden) + "_hdim_" + str(args.hdim) + "_nNICE_" + str(args.nNICE) + "_nMixing_" + str(args.nMixing) + "_Sprior_" + str(args.smallPrior) + '_bigM_' + str(args.bigModel) + "/"
     print("No specified saving path, using", rootFolder)
 else:
     rootFolder = args.folder
@@ -134,32 +134,30 @@ elif target == "MNIST":
 else:
     raise Exception("No such target")
 
+'''
 # Building the sub-priors
 # TODO: depth less than int(math.log(blockLength, 2))
 priorList = []
-meanNNlist = []
-scaleNNlist = []
 _length = int((blockLength * blockLength) / 4)
 for n in range(int(math.log(blockLength, 2))):
     if n != (int(math.log(blockLength, 2))) - 1:
         # intermedia variable prior, 3 here means the left 3 variable
         if smallPrior:
-            priorList.append(source.DiscreteLogistic([channel, 1, 3], decimal, rounding, train=False))
+            priorList.append(source.DiscreteLogistic([channel, 1, 3], decimal, rounding))
         else:
-            meanNNlist.append(utils.SimpleMLP([channel * _length // 4 * 4, channel * _length * 3], [nn.Sigmoid()]))
-            scaleNNlist.append(utils.SimpleMLP([channel * _length // 4 * 4, channel * _length * 3], [nn.Sigmoid()]))
-            priorList.append(source.DiscreteLogistic([channel, _length, 3], decimal, rounding, train=False))
+            priorList.append(source.DiscreteLogistic([channel, _length, 3], decimal, rounding))
     elif n == depth - 1:
         # if depth is specified, the last prior
         priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding))
         break
     else:
-        # final variable prior, all 4 variable, work only when depth != -1
+        # final variable prior, all 4 variable
         priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding))
     _length = int(_length / 4)
 
 # Building the hierarchy prior
-p = source.ParameterizedHierarchyPrior(channel, blockLength, priorList, meanNNlist, scaleNNlist, repeat=repeat)
+p = source.HierarchyPrior(channel, blockLength, priorList, repeat=repeat)
+'''
 
 
 # Building NICE model inside MERA
@@ -169,8 +167,14 @@ assert depth <= int(math.log(blockLength, 2))
 layerList = []
 if depth == -1:
     depth = None
-# NOTE HERE: Same wavelet at each RG scale. If want different wavelet, change (repeat + 1)
-#            to depth * (repeat + 1)!
+
+
+# define the way to init parameters in NN
+def initMethod(weight, bias, num):
+    if num == nhidden:
+        torch.nn.init.zeros_(weight)
+        torch.nn.init.zeros_(bias)
+
 
 if bigModel:
     if depth is None:
@@ -184,17 +188,27 @@ for _ in range(_layerNum):
     maskList = []
     for n in range(nNICE):
         if n % 2 == 0:
-            b = torch.cat([torch.cat([torch.zeros(2 * 1), torch.ones(2 * 1)])[torch.randperm(1 * 2 * 2)].reshape(1,1,2,2) for _ in range(channel)], dim=1)
+            b = torch.cat([torch.cat([torch.zeros(2 * 1), torch.ones(2 * 1)])[torch.randperm(1 * 2 * 2)].reshape(1, 1, 2, 2) for _ in range(channel)], dim=1)
         else:
             b = 1 - b
         maskList.append(b)
     maskList = torch.cat(maskList, 0)#.to(torch.float32)
-    tList = [nn.Sequential(nn.BatchNorm1d(channel), utils.SimpleMLPreshape([3 * 2 * 1] + [hdim] * nhidden + [3 * 2 * 1], [nn.ELU()] * nhidden + [None])) for _ in range(nNICE)]
+    tList = [utils.SimpleMLPreshape([3 * 2 * 1] + [hdim] * nhidden + [3 * 2 * 1], [nn.ELU()] * nhidden + [None], initMethod=initMethod) for _ in range(nNICE)]
     layerList.append(flow.DiscreteNICE(maskList, tList, decimal, rounding))
 
-# Building MERA model
-f = flow.MERA(dimensional, blockLength, layerList, repeat, depth=depth, prior=p).to(device)
+meanNNlist = []
+scaleNNlist = []
+for no in range(int(math.log(blockLength, 2))):
+    meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
+    scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
+    torch.nn.init.zeros_(meanNNlist[-1][-2].weight)
+    torch.nn.init.zeros_(meanNNlist[-1][-2].bias)
 
+# Building MERA model
+f = flow.ParameterizedMERA(dimensional, blockLength, layerList, meanNNlist, scaleNNlist, repeat, depth=depth, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+
+# new init for priorList, skip the sanity check for now
+'''
 # sanity check of f and it's prior
 for no in range(int(math.log(blockLength, 2))):
     if no == depth:
@@ -207,6 +221,21 @@ for no in range(int(math.log(blockLength, 2))):
             np.testing.assert_allclose(f.indexI[(no + 1) * (repeat + 1) - 1][:, :-1], f.prior.factorOutIList[no])
     else:
         np.testing.assert_allclose(f.indexI[(no + 1) * (repeat + 1) - 1], f.prior.factorOutIList[no])
+'''
+
+from utils import getIndeices
+shape = [blockLength, blockLength]
+depth = int(math.log(blockLength, 2))
+kernelSize = 2
+indexList = []
+for no in range(depth):
+    indexList.append(getIndeices(shape, kernelSize, kernelSize, kernelSize * (kernelSize**no), kernelSize**no, 0))
+indexIList = [item[0] for item in indexList]
+indexJList = [item[1] for item in indexList]
+
+factorOutIList = [term[:, 1:] if no != len(indexIList) - 1 else term for no, term in enumerate(indexIList)]
+factorOutJList = [term[:, 1:] if no != len(indexJList) - 1 else term for no, term in enumerate(indexJList)]
+
 
 # Define plot function
 def plotfn(f, train, test, LOSS, VALLOSS):
@@ -241,7 +270,7 @@ def plotfn(f, train, test, LOSS, VALLOSS):
     # collect parts
     zparts = []
     for no in range(_depth):
-        _, z_ = utils.dispatch(p.factorOutIList[no], p.factorOutJList[no], z)
+        _, z_ = utils.dispatch(factorOutIList[no], factorOutJList[no], z)
         zparts.append(z_)
 
     _, zremain = utils.dispatch(ftest.indexI[-1], ftest.indexJ[-1], z)
@@ -257,21 +286,33 @@ def plotfn(f, train, test, LOSS, VALLOSS):
     # define renorm fn
     def back01(tensor):
         ten = tensor.clone()
-        ten = ten.view(ten.shape[0], -1)
+        ten = ten.view(ten.shape[0] * ten.shape[1], -1)
         ten -= ten.min(1, keepdim=True)[0]
         ten /= ten.max(1, keepdim=True)[0]
         ten = ten.view(tensor.shape)
         return ten
 
+    # another renorm fn
+    def clip(tensor, l=0, h=255):
+        return torch.clamp(tensor, l, h).int()
+
+    # yet another renorm fn
+    def batchNorm(tensor):
+        m = nn.BatchNorm2d(tensor.shape[1], affine=False).to(tensor)
+        return m(tensor).float() + 1.0
+
+
+    renormFn = lambda x: back01(batchNorm(x))
+
     # norm the remain
-    zremain = back01(zremain)
+    zremain = renormFn(zremain)
 
     for i in range(_depth):
 
         # inner parts, odd repeat order: upper left, upper right, down left; even repeat order: upper right, down left, down right
         parts = []
         for no in range(3):
-            part = back01(zparts[-(i + 1)][:, :, :, no].reshape(*zremain.shape))
+            part = renormFn(zparts[-(i + 1)][:, :, :, no].reshape(*zremain.shape))
             parts.append(part)
 
         # piece the inner up

@@ -75,7 +75,7 @@ class ParameterizedMERA(ParameterizedHierarchyBijector):
 
         prior = source.ParameterizedHierarchyPrior(3, length, lastPrior, repeat=repeat, decimal=decimal, rounding=rounding)
 
-        super(ParameterizedMERA, self).__init__(kernelShape, indexIList, indexJList, layerList, meanNNlist, scaleNNlist, prior, name)
+        super(ParameterizedMERA, self).__init__(kernelShape, indexIList, indexJList, layerList, meanNNlist, scaleNNlist, decimal, prior, name)
 
 
 class OneToTwoMERA(OneToTwoHierarchyBijector):
