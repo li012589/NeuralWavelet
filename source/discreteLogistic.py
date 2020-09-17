@@ -39,10 +39,7 @@ class MixtureDiscreteLogistic(Source):
         if mean is None:
             mean = torch.zeros([nMixing] + nvars)
             for i in range(nMixing):
-                if decimal is None:
-                    mean[i, ...] += i - (nMixing - 1) / 2.
-                else:
-                    mean[i, ...] += decimal.forward_(i - (nMixing - 1) / 2.)
+                mean[i, ...] += i - (nMixing - 1) / 2.
         if logscale is None:
             logscale = torch.zeros([nMixing] + nvars)
 
