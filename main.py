@@ -169,7 +169,7 @@ if depth == -1:
 # define the way to init parameters in NN
 def initMethod(weight, bias, num):
     if num == nhidden:
-        torch.nn.init.sparse_(weight, sparsity=0.1)
+        torch.nn.init.zeros_(weight)
         torch.nn.init.zeros_(bias)
 
 
