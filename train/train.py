@@ -3,8 +3,18 @@ import numpy as np
 import utils
 
 
+def gradTest(params):
+    zeroCount = 0
+    nonCount = 0
+    for no, param in enumerate(params):
+        if param.grad is None:
+            nonCount += 1
+        elif torch.abs(param.grad).sum() == 0:
+            zeroCount += 1
+    return zeroCount, nonCount
 
-def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolder, eps=1.e-7, warmup=10, lr_decay=0.999, plotfn=None):
+
+def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolder, eps=1.e-7, warmup=10, lr_decay=0.999, plotfn=None, testGrad=False):
     params = list(flow.parameters())
     params = list(filter(lambda p: p.requires_grad, params))
     nparams = sum([np.prod(p.size()) for p in params])
@@ -31,6 +41,8 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
         # train
         trainLoss = []
         t_start = time.time()
+        if testGrad:
+            countList = []
         for samples, _ in trainLoader:
             samples = samples
             lossRaw = -flow.logProbability(samples)
@@ -38,9 +50,14 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
 
             optimizer.zero_grad()
             _loss.backward()
+            if testGrad:
+                zeroCounter, nonCounter = gradTest(params)
+                countList.append((zeroCounter, nonCounter))
             optimizer.step()
 
             trainLoss.append(_loss.detach().cpu().item())
+        if testGrad:
+            print("grad test: (zero, none):", countList)
         trainLoss = np.array(trainLoss)
         trainTime = time.time() - t_start
         LOSS.append(trainLoss.mean())
