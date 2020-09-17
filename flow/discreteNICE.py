@@ -25,7 +25,7 @@ class DiscreteNICE(Flow):
             yA = torch.masked_select(y, mask).reshape(y.shape[0], y.shape[1], -1)
             yB = self.decimal.inverse_(torch.masked_select(y, maskR).reshape(y.shape[0], y.shape[1], -1))
 
-            t = self.decimal.forward_(self.tList[i](yB))
+            t = (self.tList[i](yB)) * self.decimal.scaling
             assert_array_equal(t.shape, yB.shape)
 
             yA = yA + self.rounding(t)
@@ -40,7 +40,7 @@ class DiscreteNICE(Flow):
             zA = torch.masked_select(z, mask).reshape(z.shape[0], z.shape[1], -1)
             zB = self.decimal.inverse_(torch.masked_select(z, maskR).reshape(z.shape[0], z.shape[1], -1))
 
-            t = self.decimal.forward_(self.tList[i](zB))
+            t = (self.tList[i](zB)) * self.decimal.scaling
             assert_array_equal(t.shape, zB.shape)
 
             zA = zA - self.rounding(t)
