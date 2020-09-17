@@ -134,32 +134,6 @@ elif target == "MNIST":
 else:
     raise Exception("No such target")
 
-'''
-# Building the sub-priors
-# TODO: depth less than int(math.log(blockLength, 2))
-priorList = []
-_length = int((blockLength * blockLength) / 4)
-for n in range(int(math.log(blockLength, 2))):
-    if n != (int(math.log(blockLength, 2))) - 1:
-        # intermedia variable prior, 3 here means the left 3 variable
-        if smallPrior:
-            priorList.append(source.DiscreteLogistic([channel, 1, 3], decimal, rounding))
-        else:
-            priorList.append(source.DiscreteLogistic([channel, _length, 3], decimal, rounding))
-    elif n == depth - 1:
-        # if depth is specified, the last prior
-        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding))
-        break
-    else:
-        # final variable prior, all 4 variable
-        priorList.append(source.MixtureDiscreteLogistic([channel, _length, 4], nMixing, decimal, rounding))
-    _length = int(_length / 4)
-
-# Building the hierarchy prior
-p = source.HierarchyPrior(channel, blockLength, priorList, repeat=repeat)
-'''
-
-
 # Building NICE model inside MERA
 assert nNICE % 2 == 0
 assert depth <= int(math.log(blockLength, 2))
@@ -174,7 +148,6 @@ def initMethod(weight, bias, num):
     if num == nhidden:
         torch.nn.init.zeros_(weight)
         torch.nn.init.zeros_(bias)
-
 
 if bigModel:
     if depth is None:
@@ -199,7 +172,7 @@ for _ in range(_layerNum):
 meanNNlist = []
 scaleNNlist = []
 if bigModel:
-    for no in range(int(math.log(blockLength, 2))):
+    for no in range(int(math.log(blockLength, 2)) - 1):
         meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
         scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
         torch.nn.init.zeros_(meanNNlist[-1][-2].weight)
