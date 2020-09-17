@@ -34,7 +34,7 @@ def test_bijective():
 
     meanNNlist = []
     scaleNNlist = []
-    for _ in range(int(math.log(8, 2))):
+    for _ in range(int(math.log(8, 2)) - 1):
         meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
         scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
 
@@ -75,7 +75,7 @@ def test_saveload():
 
     meanNNlist = []
     scaleNNlist = []
-    for _ in range(int(math.log(8, 2))):
+    for _ in range(int(math.log(8, 2)) - 1):
         meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
         scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
 
@@ -100,7 +100,7 @@ def test_saveload():
 
     meanNNlist = []
     scaleNNlist = []
-    for _ in range(int(math.log(8, 2))):
+    for _ in range(int(math.log(8, 2)) - 1):
         meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
         scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
 
