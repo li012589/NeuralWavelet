@@ -19,6 +19,7 @@ def sampleLogistic(size, mean, logscale, testBroadcastSize=False, eps=1e-19):
 
 def logDiscreteLogistic(x, mean, logscale, decimal=None, test=True, testBroadcastSize=False):
     if test:
+        assert np.all(np.isfinite(x.cpu().detach().numpy()))
         assert np.all(np.equal(np.mod(x.cpu().detach().numpy(), 1), 0))
     mean, logscale = broadcastSize(x.shape, [mean, logscale], testBroadcastSize)
     if decimal is None:
@@ -41,6 +42,7 @@ def sampleDiscreteLogistic(size, mean, logscale, rounding=torch.round, decimal=N
 
 def cdfDiscreteLogitstic(x, mean, logscale, decimal=None, test=True, testBroadcastSize=False):
     if test:
+        assert np.all(np.isfinite(x.cpu().detach().numpy()))
         assert np.all(np.equal(np.mod(x.cpu().detach().numpy(), 1), 0))
     mean, logscale = broadcastSize(x.shape, [mean, logscale], testBroadcastSize)
     if decimal is None:
@@ -49,7 +51,7 @@ def cdfDiscreteLogitstic(x, mean, logscale, decimal=None, test=True, testBroadca
         return torch.sigmoid((decimal.inverse_(x + 0.5) - mean) / torch.exp(logscale))
 
 
-def logMixDiscreteLogistic(x, mean, logscale, parts, decimal=None, test=True, eps=1e-49):
+def logMixDiscreteLogistic(x, mean, logscale, parts, decimal=None, test=True, eps=1e-19):
     '''
     x, mean, logscale are of broadcastable size,
     parts is torch.tensor with size [..., parts dim], ... are broadcastable with x
@@ -61,6 +63,7 @@ def logMixDiscreteLogistic(x, mean, logscale, parts, decimal=None, test=True, ep
     #assert parts.sum() == 1 * np.prod(parts.shape[:-1])
 
     if test:
+        assert np.all(np.isfinite(x.cpu().detach().numpy()))
         assert np.all(np.equal(np.mod(x.cpu().detach().numpy(), 1), 0))
     mean, logscale = mean.permute(torch.arange(len(mean.shape)).roll(-1).tolist()), logscale.permute(torch.arange(len(mean.shape)).roll(-1).tolist())
     x = x.view(*x.shape, 1)
@@ -86,6 +89,7 @@ def cdfMixDiscreteLogistic(x, mean, logscale, parts, decimal=None, test=True):
     parts = torch.softmax(parts, dim=-1)
 
     if test:
+        assert np.all(np.isfinite(x.cpu().detach().numpy()))
         assert np.all(np.equal(np.mod(x.cpu().detach().numpy(), 1), 0))
     mean, logscale = mean.permute(torch.arange(len(mean.shape)).roll(-1).tolist()), logscale.permute(torch.arange(len(mean.shape)).roll(-1).tolist())
     x = x.view(*x.shape, 1)
