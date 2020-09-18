@@ -173,15 +173,21 @@ meanNNlist = []
 scaleNNlist = []
 if bigModel:
     for no in range(int(math.log(blockLength, 2)) - 1):
-        meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
-        scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
-        torch.nn.init.zeros_(meanNNlist[-1][-2].weight)
-        torch.nn.init.zeros_(meanNNlist[-1][-2].bias)
+        meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0)))
+        scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0)))
+        torch.nn.init.zeros_(meanNNlist[-1][-1].weight)
+        torch.nn.init.zeros_(meanNNlist[-1][-1].bias)
+        torch.nn.init.zeros_(scaleNNlist[-1][-1].weight)
+        torch.nn.init.zeros_(scaleNNlist[-1][-1].bias)
+
 else:
-    meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
-    scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
-    torch.nn.init.zeros_(meanNNlist[-1][-2].weight)
-    torch.nn.init.zeros_(meanNNlist[-1][-2].bias)
+    meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0)))
+    scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0)))
+    torch.nn.init.zeros_(meanNNlist[-1][-1].weight)
+    torch.nn.init.zeros_(meanNNlist[-1][-1].bias)
+    torch.nn.init.zeros_(scaleNNlist[-1][-1].weight)
+    torch.nn.init.zeros_(scaleNNlist[-1][-1].bias)
+
 
 # Building MERA model
 f = flow.ParameterizedMERA(dimensional, blockLength, layerList, meanNNlist, scaleNNlist, nMixing, repeat, depth=depth, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
