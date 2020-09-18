@@ -20,6 +20,7 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
     nparams = sum([np.prod(p.size()) for p in params])
 
     print('total nubmer of trainable parameters:', nparams)
+    print('parameter groups:', len(params))
 
     # Building gadget for optim
     def lr_lambda(epoch):
