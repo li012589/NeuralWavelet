@@ -80,14 +80,14 @@ class ParameterizedHierarchyPrior(Source):
         for no in range(len(self.factorOutIList)):
             _, z_ = dispatch(self.factorOutIList[no], self.factorOutJList[no], z)
             if no == len(self.factorOutIList) - 1:
-                logp = logp + self.lastPrior._energy(z_)
+                _logp = self.lastPrior._energy(z_)
             else:
                 mean = meanList[no]
                 scale = scaleList[no]
                 assert mean.shape == scale.shape
                 assert mean.shape == z_.shape
                 _logp = -utils.logDiscreteLogistic(z_, mean, scale, self.decimal).reshape(z_.shape[0], -1).sum(-1)
-                logp = logp + _logp
+            logp = logp + _logp
 
         return -logp
 
