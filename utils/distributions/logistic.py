@@ -51,7 +51,7 @@ def cdfDiscreteLogitstic(x, mean, logscale, decimal=None, test=True, testBroadca
         return torch.sigmoid((decimal.inverse_(x + 0.5) - mean) / torch.exp(logscale))
 
 
-def logMixDiscreteLogistic(x, mean, logscale, parts, decimal=None, test=True, eps=1e-49):
+def logMixDiscreteLogistic(x, mean, logscale, parts, decimal=None, test=True, eps=1e-19):
     '''
     x, mean, logscale are of broadcastable size,
     parts is torch.tensor with size [..., parts dim], ... are broadcastable with x
