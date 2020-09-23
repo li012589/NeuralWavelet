@@ -18,6 +18,7 @@ group.add_argument("-depth", type=int, default=-1, help="depth of hierarchy stru
 group.add_argument("-repeat", type=int, default=1, help="num of disentangler layers of each RG scale")
 group.add_argument("-nhidden", type=int, default=3, help="num of MLP layers inside NICE inside MERA")
 group.add_argument("-hdim", type=int, default=50, help="layer dimension of MLP inside NICE inside MERA")
+group.add_argument("-hchnl", type=int, default=12, help="intermediate channel dimension of Conv2d inside NICE inside MERA")
 group.add_argument("-nNICE", type=int, default=2, help="num of NICE layers of each RG scale (even number only)")
 group.add_argument("-nMixing", type=int, default=5, help="num of mixing distributions of last sub-priors")
 group.add_argument("-smallPrior", action='store_true', help="use a smaller prior to save params")
@@ -40,7 +41,7 @@ device = torch.device("cpu" if args.cuda < 0 else "cuda:" + str(args.cuda))
 
 # Creating save folder
 if args.folder is None:
-    rootFolder = './opt/test_default_' + args.target + "_depth_" + str(args.depth) + "_repeat_" + str(args.repeat) + "_nhidden_" + str(args.nhidden) + "_hdim_" + str(args.hdim) + "_nNICE_" + str(args.nNICE) + "_nMixing_" + str(args.nMixing) + "_Sprior_" + str(args.smallPrior) + '_bigM_' + str(args.bigModel) + "/"
+    rootFolder = './opt/default_Conv2dnet_' + args.target + "_depth_" + str(args.depth) + "_repeat_" + str(args.repeat) + "_nhidden_" + str(args.nhidden) + "_hdim_" + str(args.hdim) + "_hchnl_" + str(args.hchnl) + "_nNICE_" + str(args.nNICE) + "_nMixing_" + str(args.nMixing) + "_Sprior_" + str(args.smallPrior) + '_bigM_' + str(args.bigModel) + "/"
     print("No specified saving path, using", rootFolder)
 else:
     rootFolder = args.folder
@@ -55,6 +56,7 @@ if not args.load:
     repeat = args.repeat
     nhidden = args.nhidden
     hdim = args.hdim
+    hchnl = args.hchnl
     nNICE = args.nNICE
     nMixing = args.nMixing
     smallPrior = args.smallPrior
@@ -64,7 +66,7 @@ if not args.load:
     savePeriod = args.savePeriod
     lr = args.lr
     with open(rootFolder + "/parameter.json", "w") as f:
-        config = {'target': target, 'depth': depth, 'repeat': repeat, 'nhidden': nhidden, 'hdim': hdim, 'nNICE': nNICE, 'nMixing': nMixing, 'smallPrior': smallPrior, 'bigModel': bigModel, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr}
+        config = {'target': target, 'depth': depth, 'repeat': repeat, 'nhidden': nhidden, 'hdim': hdim, 'hchnl': hchnl, 'nNICE': nNICE, 'nMixing': nMixing, 'smallPrior': smallPrior, 'bigModel': bigModel, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr}
         json.dump(config, f)
 else:
     # load saved parameters, and decoding them to mem
@@ -173,21 +175,20 @@ meanNNlist = []
 scaleNNlist = []
 if bigModel:
     for no in range(int(math.log(blockLength, 2)) - 1):
-        meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0)))
-        scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0)))
+        meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 9, 3, padding=1)))
+        scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 9, 3, padding=1)))
         torch.nn.init.zeros_(meanNNlist[-1][-1].weight)
         torch.nn.init.zeros_(meanNNlist[-1][-1].bias)
         torch.nn.init.zeros_(scaleNNlist[-1][-1].weight)
         torch.nn.init.zeros_(scaleNNlist[-1][-1].bias)
 
 else:
-    meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0)))
-    scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0)))
+    meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 9, 3, padding=1)))
+    scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 9, 3, padding=1)))
     torch.nn.init.zeros_(meanNNlist[-1][-1].weight)
     torch.nn.init.zeros_(meanNNlist[-1][-1].bias)
     torch.nn.init.zeros_(scaleNNlist[-1][-1].weight)
     torch.nn.init.zeros_(scaleNNlist[-1][-1].bias)
-
 
 # Building MERA model
 f = flow.ParameterizedMERA(dimensional, blockLength, layerList, meanNNlist, scaleNNlist, nMixing, repeat, depth=depth, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
