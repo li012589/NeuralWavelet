@@ -34,4 +34,4 @@ class SimpleMLPreshape(SimpleMLP):
         shape = x.shape
         x = x.reshape(shape[0],-1)
         x = super(SimpleMLPreshape,self).forward(x)
-        return x.reshape(shape)
+        return x.reshape(*shape[:2], -1)
