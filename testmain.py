@@ -16,10 +16,9 @@ group.add_argument('-target', type=str, default='CIFAR', choices=['CIFAR', 'Imag
 group = parser.add_argument_group("Architecture Parameters")
 group.add_argument("-depth", type=int, default=-1, help="depth of hierarchy structure, -1 means full depth")
 group.add_argument("-repeat", type=int, default=1, help="num of disentangler layers of each RG scale")
-group.add_argument("-nhidden", type=int, default=3, help="num of MLP layers inside NICE inside MERA")
 group.add_argument("-hdim", type=int, default=50, help="layer dimension of MLP inside NICE inside MERA")
 group.add_argument("-hchnl", type=int, default=12, help="intermediate channel dimension of Conv2d inside NICE inside MERA")
-group.add_argument("-nNICE", type=int, default=2, help="num of NICE layers of each RG scale (even number only)")
+group.add_argument("-nNICE", type=int, default=1, help="num of NICE layers of each RG scale (even number only)")
 group.add_argument("-nMixing", type=int, default=5, help="num of mixing distributions of last sub-priors")
 group.add_argument("-smallPrior", action='store_true', help="use a smaller prior to save params")
 group.add_argument("-bigModel", action='store_true', help="use big version of model")
@@ -41,7 +40,7 @@ device = torch.device("cpu" if args.cuda < 0 else "cuda:" + str(args.cuda))
 
 # Creating save folder
 if args.folder is None:
-    rootFolder = './opt/default_Conv2dnet_' + args.target + "_depth_" + str(args.depth) + "_repeat_" + str(args.repeat) + "_nhidden_" + str(args.nhidden) + "_hdim_" + str(args.hdim) + "_hchnl_" + str(args.hchnl) + "_nNICE_" + str(args.nNICE) + "_nMixing_" + str(args.nMixing) + "_Sprior_" + str(args.smallPrior) + '_bigM_' + str(args.bigModel) + "/"
+    rootFolder = './opt/default_Conv2dnet_' + args.target + "_depth_" + str(args.depth) + "_repeat_" + str(args.repeat) + "_hdim_" + str(args.hdim) + "_hchnl_" + str(args.hchnl) + "_nNICE_" + str(args.nNICE) + "_nMixing_" + str(args.nMixing) + "_Sprior_" + str(args.smallPrior) + '_bigM_' + str(args.bigModel) + "/"
     print("No specified saving path, using", rootFolder)
 else:
     rootFolder = args.folder
@@ -54,7 +53,6 @@ if not args.load:
     target = args.target
     depth = args.depth
     repeat = args.repeat
-    nhidden = args.nhidden
     hdim = args.hdim
     hchnl = args.hchnl
     nNICE = args.nNICE
@@ -66,7 +64,7 @@ if not args.load:
     savePeriod = args.savePeriod
     lr = args.lr
     with open(rootFolder + "/parameter.json", "w") as f:
-        config = {'target': target, 'depth': depth, 'repeat': repeat, 'nhidden': nhidden, 'hdim': hdim, 'hchnl': hchnl, 'nNICE': nNICE, 'nMixing': nMixing, 'smallPrior': smallPrior, 'bigModel': bigModel, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr}
+        config = {'target': target, 'depth': depth, 'repeat': repeat, 'hdim': hdim, 'hchnl': hchnl, 'nNICE': nNICE, 'nMixing': nMixing, 'smallPrior': smallPrior, 'bigModel': bigModel, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr}
         json.dump(config, f)
 else:
     # load saved parameters, and decoding them to mem
@@ -137,19 +135,12 @@ else:
     raise Exception("No such target")
 
 # Building NICE model inside MERA
-assert nNICE % 2 == 0
 assert depth <= int(math.log(blockLength, 2))
 
 layerList = []
 if depth == -1:
     depth = None
 
-
-# define the way to init parameters in NN
-def initMethod(weight, bias, num):
-    if num == nhidden:
-        torch.nn.init.zeros_(weight)
-        torch.nn.init.zeros_(bias)
 
 if bigModel:
     if depth is None:
@@ -161,14 +152,21 @@ else:
 
 for _ in range(_layerNum):
     maskList = []
-    for n in range(nNICE):
-        if n % 2 == 0:
-            b = torch.cat([torch.cat([torch.zeros(2 * 1), torch.ones(2 * 1)])[torch.randperm(1 * 2 * 2)].reshape(1, 1, 2, 2) for _ in range(channel)], dim=1)
+    for n in range(nNICE * 4):
+        if n % 4 == 0:
+            b = 1 - torch.tensor([[0, 1], [1, 1]]).repeat(1, 3, 1, 1)
+        elif n % 4 == 1:
+            b = 1 - torch.tensor([[1, 0], [1, 1]]).repeat(1, 3, 1, 1)
+        elif n % 4 == 2:
+            b = 1 - torch.tensor([[1, 1], [0, 1]]).repeat(1, 3, 1, 1)
         else:
-            b = 1 - b
+            b = 1 - torch.tensor([[1, 1], [1, 0]]).repeat(1, 3, 1, 1)
         maskList.append(b)
-    maskList = torch.cat(maskList, 0)#.to(torch.float32)
-    tList = [utils.SimpleMLPreshape([3 * 2 * 1] + [hdim] * nhidden + [3 * 2 * 1], [nn.ELU()] * nhidden + [None], initMethod=initMethod) for _ in range(nNICE)]
+    maskList = torch.cat(maskList, 0)
+    tList = [torch.nn.Sequential(torch.nn.Conv1d(3, hdim, 3, padding=1, padding_mode='reflect'), torch.nn.ReLU(inplace=True), torch.nn.Conv1d(hdim, hdim, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv1d(hdim, 3, 3, padding=0)) for _ in range(nNICE * 4)]
+    for term in tList:
+        torch.nn.init.zeros_(term[-1].weight)
+        torch.nn.init.zeros_(term[-1].bias)
     layerList.append(flow.DiscreteNICE(maskList, tList, decimal, rounding))
 
 meanNNlist = []
