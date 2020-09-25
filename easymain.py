@@ -135,14 +135,15 @@ def initMethod(weight, bias, num):
         torch.nn.init.zeros_(weight)
         torch.nn.init.zeros_(bias)
 
+
 layerList = []
-for i in range(4):
+for i in range(4 * repeat):
     layerList.append(torch.nn.Sequential(torch.nn.Conv2d(3, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 9, 3, padding=1)))
     torch.nn.init.zeros_(layerList[-1][-1].weight)
     torch.nn.init.zeros_(layerList[-1][-1].bias)
 
 maskList = []
-for i in range(4):
+for i in range(4 * repeat):
     if i % 4 == 0:
         b = 1 - torch.tensor([[0, 1], [0, 1]]).repeat(1, 3, 1, 1)
     elif i % 4 == 1:
@@ -153,7 +154,7 @@ for i in range(4):
         b = 1 - torch.tensor([[0, 0], [1, 1]]).repeat(1, 3, 1, 1)
     maskList.append(b)
 maskList = torch.cat(maskList, 0)
-tList = [utils.SimpleMLPreshape([3 * 2 * 1] + [hdim] * nhidden + [3 * 2 * 1], [nn.ELU()] * nhidden + [None], initMethod=initMethod) for _ in range(4)]
+tList = [utils.SimpleMLPreshape([3 * 2 * 1] + [hdim] * nhidden + [3 * 2 * 1], [nn.ELU()] * nhidden + [None], initMethod=initMethod) for _ in range(4 * repeat)]
 lastLayer = flow.DiscreteNICE(maskList, tList, decimal, utils.roundingWidentityGradient, None)
 
 meanNNlist = []
