@@ -42,7 +42,7 @@ class ParameterizedMERA(ParameterizedHierarchyBijector):
     def __init__(self, kernelDim, length, layerList, meanNNlist, scaleNNlist, nMixing=5, repeat=1, depth=None, decimal=None, rounding=None, name="ParameterizedMERA"):
         kernelSize = 2
         shape = [length, length]
-        if depth is None:
+        if depth is None or depth == -1:
             depth = int(math.log(length, kernelSize))
 
         indexList = []
@@ -62,7 +62,7 @@ class ParameterizedMERA(ParameterizedHierarchyBijector):
         if len(layerList) == repeat + 1:
             layerList = layerList * depth
 
-        assert len(meanNNlist) == len(meanNNlist)
+        assert len(meanNNlist) == len(scaleNNlist)
 
         if len(meanNNlist) == 1:
             meanNNlist = meanNNlist * (depth - 1)
