@@ -63,7 +63,7 @@ print("load saving at " + name)
 loadedF = torch.load(name, map_location=device)
 
 layerList = loadedF.layerList[:(repeat + 1)]
-layerList = [layerList[no] for no in range(3)]
+layerList = [layerList[no] for no in range(repeat + 1)]
 
 # Define dimensions
 targetSize = IMG.shape[1:]
