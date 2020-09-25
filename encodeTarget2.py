@@ -168,40 +168,54 @@ def encode(z):
     MEAN = []
     state = [None for _ in range(z.shape[0])]
     SHAPE = []
-
+    count = 0
     for no in range(int(math.log(blockLength, 2))):
         _, zpart = utils.dispatch(f.prior.factorOutIList[no], f.prior.factorOutJList[no], z)
 
         _CDF = []
         _MEAN = []
         SHAPE.append(zpart.shape[1:])
+        maxChan = zpart.shape[-1]
+        if no == int(math.log(blockLength, 2)) - 1:
+            maxChan = 1
+        zpart = zpart.permute([0, 1, 3, 2]).reshape(batch, 3 * maxChan, -1)
         for i in range(zpart.shape[0]):
+            _mean = []
+            _cdf = []
+            for chan in range(3 * maxChan):
+                _zpart = zpart[i, chan]
 
-            mean = int(0.5 * (zpart[i].max() + zpart[i].min()))
-            _MEAN.append(mean)
-            histogram = torch.histc(zpart[i] - mean, bins=args.nbins, min=-args.nbins // 2, max=args.nbins // 2)
+                mean = int(0.5 * (_zpart.max() + zpart.min()))
+                _mean.append(mean)
 
-            prob = histogram / np.prod(zpart[i].shape)
-            logp = -torch.log2(prob)
-            logp[logp == float('inf')] = 0
-            theorySize = (logp * histogram).sum().item()
-            theoryBPD.append(theorySize / np.prod(zpart[i].shape))
+                cha, freq = np.unique((_zpart - mean).detach().numpy() + args.nbins // 2, return_counts=True)
+                histogram = np.zeros(args.nbins)
+                histogram[cha.astype(int)] = freq
 
-            cdf = prob.detach().numpy()
-            for j in range(prob.shape[0] - 1):
-                cdf[j + 1] = cdf[j] + cdf[j + 1]
+                prob = histogram / np.prod(_zpart.shape)
+                logp = -np.log2(prob)
+                logp[logp == float('inf')] = 0
+                theorySize = (logp * histogram).sum().item() #+ cha.shape[0] * 32
+                theoryBPD.append(theorySize / np.prod(_zpart.shape))
 
-            _CDF.append((cdf * ((1 << args.precision))).astype('int').reshape(args.nbins))
+                cdf = prob
+                for j in range(prob.shape[0] - 1):
+                    cdf[j + 1] = cdf[j] + cdf[j + 1]
 
-            symbols = (zpart[i].reshape(-1) - mean + args.nbins // 2 - 1).int().numpy()
-            if state[i] is None:
-                s = rans.x_init
-            else:
-                s = state[i]
-            for j in reversed(range(len(symbols))):
-                s = coder.encoder(_CDF[-1], symbols[j], s)
-            state[i] = s
+                sCDF = (cdf * ((1 << args.precision))).astype('int').reshape(args.nbins)
+                _cdf.append(sCDF)
 
+                symbols = (_zpart.reshape(-1) - mean + args.nbins // 2 - 1).int().numpy()
+                if state[i] is None:
+                    s = rans.x_init
+                    count += 1
+                else:
+                    s = state[i]
+                for j in reversed(range(len(symbols))):
+                    s = coder.encoder(sCDF, symbols[j], s)
+                state[i] = s
+            _CDF.append(_cdf)
+            _MEAN.append(_mean)
         MEAN.append(_MEAN)
         CDF.append(_CDF)
         parts.append(zpart.reshape(zpart.shape[0], -1).int().detach())
@@ -249,6 +263,8 @@ def testBPD(loader, earlyStop=-1):
         actualBPD.append(32 / (np.prod(samples.shape[1:])) * np.mean([s.shape[0] for s in state]))
         theoryBPD.append(tBPD)
 
+        import pdb
+        pdb.set_trace()
         rcnZ = decode(CDF, MEAN, SHAPE, state)
 
         rcnSamples, _ = f.forward(rcnZ.float())
