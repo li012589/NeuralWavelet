@@ -1,1 +1,1 @@
-from .mera import MERA, ParameterizedMERA, OneToTwoMERA
+from .mera import MERA, ParameterizedMERA, OneToTwoMERA, SimpleMERA
