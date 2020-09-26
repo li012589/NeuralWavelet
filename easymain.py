@@ -167,7 +167,7 @@ torch.nn.init.zeros_(scaleNNlist[-1][-1].weight)
 torch.nn.init.zeros_(scaleNNlist[-1][-1].bias)
 
 # Building MERA model
-f = flow.SimpleMERA(blockLength, layerList, lastLayer, meanNNlist, scaleNNlist, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+f = flow.SimpleMERA(blockLength, layerList, lastLayer, meanNNlist, scaleNNlist, repeat, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
 
 '''
 from utils import getIndeices

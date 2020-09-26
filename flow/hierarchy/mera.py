@@ -138,7 +138,7 @@ def reform(tensor):
 
 
 class SimpleMERA(Flow):
-    def __init__(self, length, layerList, lastLayer, meanNNlist, scaleNNlist, nMixing=5, decimal=None, rounding=None, name="SimpleMERA"):
+    def __init__(self, length, layerList, lastLayer, meanNNlist, scaleNNlist, repeat=1, nMixing=5, decimal=None, rounding=None, name="SimpleMERA"):
         depth = int(math.log(length, 2))
 
         lastPrior = source.MixtureDiscreteLogistic([3, 1, 4], nMixing, decimal, rounding)
@@ -147,6 +147,7 @@ class SimpleMERA(Flow):
 
         self.decimal = decimal
         self.rounding = rounding
+        self.repeat = repeat
 
         layerList = layerList * depth
 
@@ -176,7 +177,7 @@ class SimpleMERA(Flow):
             dr = _x[:, :, :, 3].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
             self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(ul))))
             self.scaleList.append(reform(self.scaleNNlist[no](self.decimal.inverse_(ul))))
-            for i in range(4):
+            for i in range(4 * self.repeat):
                 if i % 4 == 0:
                     tmp = self.rounding(self.layerList[no](self.decimal.inverse_(ul)).reshape(ul.shape[0], 3, 3, ul.shape[-1], ul.shape[-1]) * self.decimal.scaling)
                     ur = ur + tmp[:, :, 0, :, :]
@@ -237,7 +238,7 @@ class SimpleMERA(Flow):
             ur = UR[no]
             dl = DL[no]
             dr = DR[no]
-            for i in reversed(range(4)):
+            for i in reversed(range(4 * self.repeat)):
                 if i % 4 == 0:
                     tmp = self.rounding(self.layerList[no](self.decimal.inverse_(ul)).reshape(ul.shape[0], 3, 3, ul.shape[-1], ul.shape[-1]) * self.decimal.scaling)
                     ur = ur - tmp[:, :, 0, :, :]

@@ -19,12 +19,12 @@ def test_bijective():
     decimal = flow.ScalingNshifting(256, -128)
 
     layerList = []
-    for i in range(4):
+    for i in range(4 * 2):
         f = torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 3, padding=1))
         layerList.append(f)
 
     maskList = []
-    for i in range(4):
+    for i in range(4 * 2):
         if i % 4 == 0:
             b = 1 - torch.tensor([[0, 1], [0, 1]]).repeat(1, 3, 1, 1)
         elif i % 4 == 1:
@@ -35,7 +35,7 @@ def test_bijective():
             b = 1 - torch.tensor([[0, 0], [1, 1]]).repeat(1, 3, 1, 1)
         maskList.append(b)
     maskList = torch.cat(maskList, 0)
-    tList = [utils.SimpleMLPreshape([3 * 2 * 1, 20, 20, 3 * 2 * 1], [nn.ELU(), nn.ELU(), None]) for _ in range(4)]
+    tList = [utils.SimpleMLPreshape([3 * 2 * 1, 20, 20, 3 * 2 * 1], [nn.ELU(), nn.ELU(), None]) for _ in range(4 * 2)]
     lastLayer = flow.DiscreteNICE(maskList, tList, decimal, utils.roundingWidentityGradient, None)
 
     meanNNlist = []
@@ -43,7 +43,7 @@ def test_bijective():
     meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
     scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
 
-    t = flow.SimpleMERA(8, layerList, lastLayer, meanNNlist, scaleNNlist, 5, decimal, utils.roundingWidentityGradient)
+    t = flow.SimpleMERA(8, layerList, lastLayer, meanNNlist, scaleNNlist, 2, 5, decimal, utils.roundingWidentityGradient)
 
     samples = torch.randint(0, 255, (100, 3, 8, 8)).float()
 
@@ -82,7 +82,7 @@ def test_saveload():
     meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
     scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
 
-    t = flow.SimpleMERA(8, layerList, lastLayer, meanNNlist, scaleNNlist, 5, decimal, utils.roundingWidentityGradient)
+    t = flow.SimpleMERA(8, layerList, lastLayer, meanNNlist, scaleNNlist, 1, 5, decimal, utils.roundingWidentityGradient)
 
     decimal = flow.ScalingNshifting(256, -128)
 
@@ -111,7 +111,7 @@ def test_saveload():
     meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
     scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
 
-    tt = flow.SimpleMERA(8, layerList, lastLayer, meanNNlist, scaleNNlist, 5, decimal, utils.roundingWidentityGradient)
+    tt = flow.SimpleMERA(8, layerList, lastLayer, meanNNlist, scaleNNlist, 1, 5, decimal, utils.roundingWidentityGradient)
 
     samples = torch.randint(0, 255, (100, 3, 8, 8)).float()
 
