@@ -13,6 +13,7 @@ import source
 import utils
 from numpy.testing import assert_allclose
 
+#torch.manual_seed(42)
 
 def test_bijective():
     decimal = flow.ScalingNshifting(256, -128)

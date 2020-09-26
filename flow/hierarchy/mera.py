@@ -178,22 +178,22 @@ class SimpleMERA(Flow):
             self.scaleList.append(reform(self.scaleNNlist[no](self.decimal.inverse_(ul))))
             for i in range(4):
                 if i % 4 == 0:
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(ul)).reshape(ul.shape[0], 3, 3, ul.shape[-1], ul.shape[-1])) * self.decimal.scaling
+                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(ul)).reshape(ul.shape[0], 3, 3, ul.shape[-1], ul.shape[-1]) * self.decimal.scaling)
                     ur = ur + tmp[:, :, 0, :, :]
                     dl = dl + tmp[:, :, 1, :, :]
                     dr = dr + tmp[:, :, 2, :, :]
                 elif i % 4 == 1:
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(ur)).reshape(ur.shape[0], 3, 3, ur.shape[-1], ur.shape[-1])) * self.decimal.scaling
+                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(ur)).reshape(ur.shape[0], 3, 3, ur.shape[-1], ur.shape[-1]) * self.decimal.scaling)
                     ul = ul + tmp[:, :, 0, :, :]
                     dl = dl + tmp[:, :, 1, :, :]
                     dr = dr + tmp[:, :, 2, :, :]
                 elif i % 4 == 2:
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(dl)).reshape(dl.shape[0], 3, 3, dl.shape[-1], dl.shape[-1])) * self.decimal.scaling
+                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(dl)).reshape(dl.shape[0], 3, 3, dl.shape[-1], dl.shape[-1]) * self.decimal.scaling)
                     ul = ul + tmp[:, :, 0, :, :]
                     ur = ur + tmp[:, :, 1, :, :]
                     dr = dr + tmp[:, :, 2, :, :]
                 else:
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(dr)).reshape(dr.shape[0], 3, 3, dr.shape[-1], dr.shape[-1])) * self.decimal.scaling
+                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(dr)).reshape(dr.shape[0], 3, 3, dr.shape[-1], dr.shape[-1]) * self.decimal.scaling)
                     ul = ul + tmp[:, :, 0, :, :]
                     ur = ur + tmp[:, :, 1, :, :]
                     dl = dl + tmp[:, :, 2, :, :]
@@ -239,22 +239,22 @@ class SimpleMERA(Flow):
             dr = DR[no]
             for i in reversed(range(4)):
                 if i % 4 == 0:
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(ul)).reshape(ul.shape[0], 3, 3, ul.shape[-1], ul.shape[-1])) * self.decimal.scaling
+                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(ul)).reshape(ul.shape[0], 3, 3, ul.shape[-1], ul.shape[-1]) * self.decimal.scaling)
                     ur = ur - tmp[:, :, 0, :, :]
                     dl = dl - tmp[:, :, 1, :, :]
                     dr = dr - tmp[:, :, 2, :, :]
                 elif i % 4 == 1:
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(ur)).reshape(ur.shape[0], 3, 3, ur.shape[-1], ur.shape[-1])) * self.decimal.scaling
+                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(ur)).reshape(ur.shape[0], 3, 3, ur.shape[-1], ur.shape[-1]) * self.decimal.scaling)
                     ul = ul - tmp[:, :, 0, :, :]
                     dl = dl - tmp[:, :, 1, :, :]
                     dr = dr - tmp[:, :, 2, :, :]
                 elif i % 4 == 2:
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(dl)).reshape(dl.shape[0], 3, 3, dl.shape[-1], dl.shape[-1])) * self.decimal.scaling
+                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(dl)).reshape(dl.shape[0], 3, 3, dl.shape[-1], dl.shape[-1]) * self.decimal.scaling)
                     ul = ul - tmp[:, :, 0, :, :]
                     ur = ur - tmp[:, :, 1, :, :]
                     dr = dr - tmp[:, :, 2, :, :]
                 else:
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(dr)).reshape(dr.shape[0], 3, 3, dr.shape[-1], dr.shape[-1])) * self.decimal.scaling
+                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(dr)).reshape(dr.shape[0], 3, 3, dr.shape[-1], dr.shape[-1]) * self.decimal.scaling)
                     ul = ul - tmp[:, :, 0, :, :]
                     ur = ur - tmp[:, :, 1, :, :]
                     dl = dl - tmp[:, :, 2, :, :]
