@@ -1,5 +1,6 @@
 import math
 import torch
+import numpy as np
 from utils import getIndeices, dispatch, collect
 from .source import Source
 import utils
@@ -90,4 +91,43 @@ class ParameterizedHierarchyPrior(Source):
             logp = logp + _logp
 
         return -logp
+
+
+def im2grp(t):
+    return t.reshape(t.shape[0], t.shape[1], t.shape[2] // 2, 2, t.shape[3] // 2, 2).permute([0, 1, 2, 4, 3, 5]).reshape(t.shape[0], t.shape[1], -1, 4)
+
+
+class SimpleHierarchyPrior(Source):
+    def __init__(self, length, prior, decimal=None, rounding=None, K=1.0, name="SimpleHierarchyPiror"):
+        super(SimpleHierarchyPrior, self).__init__([3, length, length], K, name)
+        self.depth = int(math.log(length, 2))
+
+        self.decimal = decimal
+        self.rounding = rounding
+        self.lastPrior = prior
+
+    def sample(self, batchSize, K=None):
+        raise Exception("Not implemented")
+
+    def logProbability(self, z, K=None, meanList=None, scaleList=None):
+        if meanList is None or scaleList is None:
+            raise Exception("no mean or scale passed")
+        logp = z.new_zeros(z.shape[0])
+        ul = z
+        for no in range(self.depth):
+            if no == self.depth - 1:
+                ul = ul.reshape(*ul.shape[:2], 1, 4)
+                _logp = self.lastPrior._energy(ul)
+            else:
+                _x = im2grp(ul)
+                z_ = _x[:, :, :, 1:].contiguous()
+                ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+                mean = meanList[no]
+                scale = scaleList[no]
+                assert mean.shape == scale.shape
+                assert mean.shape == z_.shape
+                _logp = -utils.logDiscreteLogistic(z_, mean, scale, self.decimal).reshape(z_.shape[0], -1).sum(-1)
+            logp = logp + _logp
+        return -logp
+
 
