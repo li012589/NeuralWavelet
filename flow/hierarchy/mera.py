@@ -175,8 +175,6 @@ class SimpleMERA(Flow):
             ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
             dl = _x[:, :, :, 2].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
             dr = _x[:, :, :, 3].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
-            self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(ul))))
-            self.scaleList.append(reform(self.scaleNNlist[no](self.decimal.inverse_(ul))))
             for i in range(4 * self.repeat):
                 if i % 4 == 0:
                     tmp = self.rounding(self.layerList[no](self.decimal.inverse_(ul)).reshape(ul.shape[0], 3, 3, ul.shape[-1], ul.shape[-1]) * self.decimal.scaling)
@@ -198,6 +196,8 @@ class SimpleMERA(Flow):
                     ul = ul + tmp[:, :, 0, :, :]
                     ur = ur + tmp[:, :, 1, :, :]
                     dl = dl + tmp[:, :, 2, :, :]
+            self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(ul))).contiguous())
+            self.scaleList.append(reform(self.scaleNNlist[no](self.decimal.inverse_(ul))).contiguous())
             UR.append(ur)
             DL.append(dl)
             DR.append(dr)
