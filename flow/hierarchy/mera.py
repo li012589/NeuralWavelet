@@ -142,7 +142,8 @@ class SimpleMERA(Flow):
         depth = int(math.log(length, 2))
 
         lastPrior = source.MixtureDiscreteLogistic([3, 1, 4], nMixing, decimal, rounding)
-        prior = source.SimpleHierarchyPrior(length, lastPrior, decimal=decimal, rounding=rounding)
+        prior = source.ParameterizedHierarchyPrior(3, length, lastPrior, repeat=1, decimal=decimal, rounding=rounding)
+        #prior = source.SimpleHierarchyPrior(length, lastPrior, decimal=decimal, rounding=rounding)
         super(SimpleMERA, self).__init__(prior, name)
 
         self.decimal = decimal
@@ -196,8 +197,8 @@ class SimpleMERA(Flow):
                     ul = ul + tmp[:, :, 0, :, :]
                     ur = ur + tmp[:, :, 1, :, :]
                     dl = dl + tmp[:, :, 2, :, :]
-            self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(ul))).contiguous())
-            self.scaleList.append(reform(self.scaleNNlist[no](self.decimal.inverse_(ul))).contiguous())
+            self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(ul))))
+            self.scaleList.append(reform(self.scaleNNlist[no](self.decimal.inverse_(ul))))
             UR.append(ur)
             DL.append(dl)
             DR.append(dr)
