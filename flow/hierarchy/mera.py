@@ -138,7 +138,7 @@ def reform(tensor):
 
 
 class SimpleMERA(Flow):
-    def __init__(self, length, layerList, lastLayer, meanNNlist, scaleNNlist, repeat=1, nMixing=5, decimal=None, rounding=None, name="SimpleMERA"):
+    def __init__(self, length, layerList, meanNNlist, scaleNNlist, repeat=1, nMixing=5, decimal=None, rounding=None, name="SimpleMERA"):
         depth = int(math.log(length, 2))
 
         lastPrior = source.MixtureDiscreteLogistic([3, 1, 4], nMixing, decimal, rounding)
@@ -152,10 +152,9 @@ class SimpleMERA(Flow):
         layerList = layerList * depth
 
         self.layerList = torch.nn.ModuleList(layerList)
-        self.lastLayer = lastLayer
 
-        meanNNlist = meanNNlist * (depth - 1)
-        scaleNNlist = scaleNNlist * (depth - 1)
+        meanNNlist = meanNNlist * depth
+        scaleNNlist = scaleNNlist * depth
 
         self.meanNNlist = torch.nn.ModuleList(meanNNlist)
         self.scaleNNlist = torch.nn.ModuleList(scaleNNlist)
@@ -169,7 +168,7 @@ class SimpleMERA(Flow):
         UR = []
         DL = []
         DR = []
-        for no in range(depth - 1):
+        for no in range(depth):
             _x = im2grp(ul)
             ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
             ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
@@ -198,13 +197,12 @@ class SimpleMERA(Flow):
                     dl = dl + tmp[:, :, 2, :, :]
             self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(ul))))
             self.scaleList.append(reform(self.scaleNNlist[no](self.decimal.inverse_(ul))))
+
             UR.append(ur)
             DL.append(dl)
             DR.append(dr)
 
-        ul, _ = self.lastLayer.inverse(ul)
-
-        for no in reversed(range(depth - 1)):
+        for no in reversed(range(depth)):
             ur = UR[no].reshape(*ul.shape, 1)
             dl = DL[no].reshape(*ul.shape, 1)
             dr = DR[no].reshape(*ul.shape, 1)
@@ -222,7 +220,7 @@ class SimpleMERA(Flow):
         UR = []
         DL = []
         DR = []
-        for no in range(depth - 1):
+        for no in range(depth):
             _x = im2grp(ul)
             ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
             ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
@@ -232,9 +230,7 @@ class SimpleMERA(Flow):
             DL.append(dl)
             DR.append(dr)
 
-        ul, _ = self.lastLayer.forward(ul)
-
-        for no in reversed(range(depth - 1)):
+        for no in reversed(range(depth)):
             ur = UR[no]
             dl = DL[no]
             dr = DR[no]
