@@ -15,7 +15,6 @@ group.add_argument('-target', type=str, default='CIFAR', choices=['CIFAR', 'Imag
 
 group = parser.add_argument_group("Architecture Parameters")
 group.add_argument("-repeat", type=int, default=1, help="num of disentangler layers of each RG scale")
-group.add_argument("-nhidden", type=int, default=3, help="num of MLP layers inside NICE inside MERA")
 group.add_argument("-hchnl", type=int, default=12, help="intermediate channel dimension of Conv2d inside NICE inside MERA")
 group.add_argument("-nMixing", type=int, default=5, help="num of mixing distributions of last sub-priors")
 
@@ -36,7 +35,7 @@ device = torch.device("cpu" if args.cuda < 0 else "cuda:" + str(args.cuda))
 
 # Creating save folder
 if args.folder is None:
-    rootFolder = './opt/default_easyMera_' + args.target + "_repeat_" + str(args.repeat) + "_nhidden_" + str(args.nhidden) + "_hchnl_" + str(args.hchnl) + "_nMixing_" + str(args.nMixing) + "/"
+    rootFolder = './opt/default_easyMera_' + args.target + "_repeat_" + str(args.repeat) + "_hchnl_" + str(args.hchnl) + "_nMixing_" + str(args.nMixing) + "/"
     print("No specified saving path, using", rootFolder)
 else:
     rootFolder = args.folder
@@ -48,7 +47,6 @@ utils.createWorkSpace(rootFolder)
 if not args.load:
     target = args.target
     repeat = args.repeat
-    nhidden = args.nhidden
     hchnl = args.hchnl
     nMixing = args.nMixing
     epoch = args.epoch
@@ -56,7 +54,7 @@ if not args.load:
     savePeriod = args.savePeriod
     lr = args.lr
     with open(rootFolder + "/parameter.json", "w") as f:
-        config = {'target': target, 'repeat': repeat, 'nhidden': nhidden, 'hchnl': hchnl, 'nMixing': nMixing, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr}
+        config = {'target': target, 'repeat': repeat, 'hchnl': hchnl, 'nMixing': nMixing, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr}
         json.dump(config, f)
 else:
     # load saved parameters, and decoding them to mem
@@ -126,12 +124,13 @@ elif target == "MNIST":
 else:
     raise Exception("No such target")
 
-
+'''
 # define the way to init parameters in NN
 def initMethod(weight, bias, num):
     if num == nhidden:
         torch.nn.init.zeros_(weight)
         torch.nn.init.zeros_(bias)
+'''
 
 
 layerList = []
