@@ -142,8 +142,7 @@ class SimpleMERA(Flow):
         depth = int(math.log(length, 2))
 
         lastPrior = source.MixtureDiscreteLogistic([3, 1, 4], nMixing, decimal, rounding)
-        prior = source.ParameterizedHierarchyPrior(3, length, lastPrior, repeat=1, decimal=decimal, rounding=rounding)
-        #prior = source.SimpleHierarchyPrior(length, lastPrior, decimal=decimal, rounding=rounding)
+        prior = source.SimpleHierarchyPrior(length, lastPrior, decimal=decimal, rounding=rounding)
         super(SimpleMERA, self).__init__(prior, name)
 
         self.decimal = decimal
