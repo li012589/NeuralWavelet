@@ -20,7 +20,7 @@ def test_bijective():
 
     layerList = []
     for i in range(4 * 2):
-        f = torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 3, padding=1))
+        f = torch.nn.Sequential(torch.nn.Conv2d(9, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 3, 3, padding=1))
         layerList.append(f)
 
     meanNNlist = []
@@ -44,7 +44,7 @@ def test_saveload():
 
     layerList = []
     for i in range(4):
-        f = torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 3, padding=1))
+        f = torch.nn.Sequential(torch.nn.Conv2d(9, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 3, 3, padding=1))
         layerList.append(f)
 
     meanNNlist = []
@@ -58,7 +58,7 @@ def test_saveload():
 
     layerList = []
     for i in range(4):
-        f = torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 3, padding=1))
+        f = torch.nn.Sequential(torch.nn.Conv2d(9, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 3, 3, padding=1))
         layerList.append(f)
 
     meanNNlist = []

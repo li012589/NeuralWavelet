@@ -135,7 +135,7 @@ def initMethod(weight, bias, num):
 
 layerList = []
 for i in range(4 * repeat):
-    layerList.append(torch.nn.Sequential(torch.nn.Conv2d(3, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 9, 3, padding=1)))
+    layerList.append(torch.nn.Sequential(torch.nn.Conv2d(9, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 3, 3, padding=1)))
     torch.nn.init.zeros_(layerList[-1][-1].weight)
     torch.nn.init.zeros_(layerList[-1][-1].bias)
 
