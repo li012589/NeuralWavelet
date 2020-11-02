@@ -86,38 +86,9 @@ class ParameterizedMERA(ParameterizedHierarchyBijector):
         super(ParameterizedMERA, self).__init__(kernelShape, indexIList, indexJList, layerList, meanNNlist, scaleNNlist, decimal, prior, name)
 
 
-class OneToTwoMERA(OneToTwoHierarchyBijector):
+class OneToTwoMERA(Flow):
     def __init__(self, kernelDim, length, layerList, repeat=1, depth=None, prior=None, name="OneToTwoMERA"):
-        kernelSize = 2
-        shape = [length, length]
-        if depth is None:
-            depth = int(math.log(length, kernelSize))
-
-        indexList = []
-
-        for no in range(depth):
-            indexList.append(getIndeices(shape, kernelSize, kernelSize, kernelSize * (kernelSize**no), kernelSize**no, 0))
-            for i in range(repeat):
-                if i % 2 == 0:
-                    indexList.append(getIndeices(shape, kernelSize, kernelSize, kernelSize * (kernelSize**no), kernelSize**no, kernelSize**no))
-                else:
-                    indexList.append(getIndeices(shape, kernelSize, kernelSize, kernelSize * (kernelSize**no), kernelSize**no, 0))
-
-        indexIList = [item[0] for item in indexList]
-        indexJList = [item[1] for item in indexList]
-
-        # to share parameters along RG direction, pass a shorter layerList
-        if len(layerList) == repeat + 1:
-            layerList = layerList * depth
-
-        assert len(layerList) == len(indexIList)
-
-        if kernelDim == 2:
-            kernelShape = [kernelSize, kernelSize]
-        elif kernelDim == 1:
-            kernelShape = [kernelSize * 2]
-
-        super(OneToTwoMERA, self).__init__(kernelShape, indexIList, indexJList, layerList, prior, name)
+        super(OneToTwoMERA, self).__init__(prior, name)
 
 
 def im2grp(t):
@@ -138,11 +109,14 @@ def reform(tensor):
 
 
 class SimpleMERA(Flow):
-    def __init__(self, length, layerList, meanNNlist, scaleNNlist, repeat=1, nMixing=5, decimal=None, rounding=None, name="SimpleMERA"):
+    def __init__(self, length, layerList, meanNNlist=None, scaleNNlist=None, repeat=1, nMixing=5, decimal=None, rounding=None, name="SimpleMERA"):
         depth = int(math.log(length, 2))
 
-        lastPrior = source.MixtureDiscreteLogistic([3, 1, 4], nMixing, decimal, rounding)
-        prior = source.SimpleHierarchyPrior(length, lastPrior, decimal=decimal, rounding=rounding)
+        if meanNNlist is None or scaleNNlist is None:
+            prior = source.SimpleHierarchyPrior(length, nMixing, decimal, rounding)
+        else:
+            lastPrior = source.MixtureDiscreteLogistic([3, 1, 4], nMixing, decimal, rounding)
+            prior = source.PassiveHierarchyPrior(length, lastPrior, decimal=decimal, rounding=rounding)
         super(SimpleMERA, self).__init__(prior, name)
 
         self.decimal = decimal
@@ -153,11 +127,15 @@ class SimpleMERA(Flow):
 
         self.layerList = torch.nn.ModuleList(layerList)
 
-        meanNNlist = meanNNlist * depth
-        scaleNNlist = scaleNNlist * depth
+        if meanNNlist is not None and scaleNNlist is not None:
+            meanNNlist = meanNNlist * depth
+            scaleNNlist = scaleNNlist * depth
 
-        self.meanNNlist = torch.nn.ModuleList(meanNNlist)
-        self.scaleNNlist = torch.nn.ModuleList(scaleNNlist)
+            self.meanNNlist = torch.nn.ModuleList(meanNNlist)
+            self.scaleNNlist = torch.nn.ModuleList(scaleNNlist)
+        else:
+            self.meanNNlist = None
+            self.scaleNNlist = None
 
     def inverse(self, x):
         depth = int(math.log(x.shape[-1], 2))
@@ -191,8 +169,9 @@ class SimpleMERA(Flow):
                     tmp = torch.cat([ul, ur, dl], 1)
                     tmp = self.rounding(self.layerList[no](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     dr = dr + tmp
-            self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(ul))).contiguous())
-            self.scaleList.append(reform(self.scaleNNlist[no](self.decimal.inverse_(ul))).contiguous())
+            if self.meanNNlist is not None and self.scaleNNlist is not None:
+                self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(ul))).contiguous())
+                self.scaleList.append(reform(self.scaleNNlist[no](self.decimal.inverse_(ul))).contiguous())
 
             UR.append(ur)
             DL.append(dl)
@@ -261,6 +240,9 @@ class SimpleMERA(Flow):
     def logProbability(self, x, K=None):
         z, logp = self.inverse(x)
         if self.prior is not None:
-            return self.prior.logProbability(z, K, self.meanList, self.scaleList) + logp
+            if self.meanNNlist is not None and self.scaleNNlist is not None:
+                return self.prior.logProbability(z, K, self.meanList, self.scaleList) + logp
+            else:
+                return self.prior.logProbability(z, K) + logp
         return logp
 

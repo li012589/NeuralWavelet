@@ -23,6 +23,7 @@ group.add_argument("-epoch", type=int, default=400, help="num of epoches to trai
 group.add_argument("-batch", type=int, default=200, help="batch size")
 group.add_argument("-savePeriod", type=int, default=10, help="save after how many steps")
 group.add_argument("-lr", type=float, default=0.001, help="learning rate")
+group.add_argument("-simplePrior", action="store_true", help="if use simple version prior, no crossover")
 
 group = parser.add_argument_group("Etc")
 group.add_argument("-folder", default=None, help="Path to save")
@@ -35,7 +36,7 @@ device = torch.device("cpu" if args.cuda < 0 else "cuda:" + str(args.cuda))
 
 # Creating save folder
 if args.folder is None:
-    rootFolder = './opt/default_easyMera_' + args.target + "_repeat_" + str(args.repeat) + "_hchnl_" + str(args.hchnl) + "_nMixing_" + str(args.nMixing) + "/"
+    rootFolder = './opt/default_easyMera_' + args.target + "_simplePrior_" + str(args.simplePrior) + "_repeat_" + str(args.repeat) + "_hchnl_" + str(args.hchnl) + "_nMixing_" + str(args.nMixing) + "/"
     print("No specified saving path, using", rootFolder)
 else:
     rootFolder = args.folder
@@ -52,9 +53,10 @@ if not args.load:
     epoch = args.epoch
     batch = args.batch
     savePeriod = args.savePeriod
+    simplePrior = args.simplePrior
     lr = args.lr
     with open(rootFolder + "/parameter.json", "w") as f:
-        config = {'target': target, 'repeat': repeat, 'hchnl': hchnl, 'nMixing': nMixing, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr}
+        config = {'target': target, 'repeat': repeat, 'hchnl': hchnl, 'nMixing': nMixing, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr, 'simplePrior': simplePrior}
         json.dump(config, f)
 else:
     # load saved parameters, and decoding them to mem
@@ -139,14 +141,18 @@ for i in range(4 * repeat):
     torch.nn.init.zeros_(layerList[-1][-1].weight)
     torch.nn.init.zeros_(layerList[-1][-1].bias)
 
-meanNNlist = []
-scaleNNlist = []
-meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 9, 3, padding=1)))
-scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 9, 3, padding=1)))
-torch.nn.init.zeros_(meanNNlist[-1][-1].weight)
-torch.nn.init.zeros_(meanNNlist[-1][-1].bias)
-torch.nn.init.zeros_(scaleNNlist[-1][-1].weight)
-torch.nn.init.zeros_(scaleNNlist[-1][-1].bias)
+if not simplePrior:
+    meanNNlist = []
+    scaleNNlist = []
+    meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 9, 3, padding=1)))
+    scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 9, 3, padding=1)))
+    torch.nn.init.zeros_(meanNNlist[-1][-1].weight)
+    torch.nn.init.zeros_(meanNNlist[-1][-1].bias)
+    torch.nn.init.zeros_(scaleNNlist[-1][-1].weight)
+    torch.nn.init.zeros_(scaleNNlist[-1][-1].bias)
+else:
+    meanNNlist = None
+    scaleNNlist = None
 
 # Building MERA model
 f = flow.SimpleMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
