@@ -21,7 +21,15 @@ trans_v = torch.matmul(v, transMatrix.t())
 
 l1 = torch.nn.Conv1d(3, 3, 2)
 
-weight = torch.tensor([[[0.5, 0.5], [0, 0], [0, 0]], [[0, 0], [0.5, 0.5], [0, 0]], [[0, 0], [0, 0], [0.5, 0.5]]])
+weight = torch.tensor([[[0.5, 0.5],
+                        [0, 0],
+                        [0, 0]],
+                       [[0, 0],
+                        [0.5, 0.5],
+                        [0, 0]],
+                       [[0, 0],
+                        [0, 0],
+                        [0.5, 0.5]]])
 
 l1.weight.data = weight
 l1.bias.data.zero_()
