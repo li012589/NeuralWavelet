@@ -1,8 +1,8 @@
 import math
 import torch
-import numpy as np
 from utils import getIndeices, dispatch, collect
 from .source import Source
+from .discreteLogistic import DiscreteLogistic, MixtureDiscreteLogistic
 import utils
 
 
@@ -97,9 +97,9 @@ def im2grp(t):
     return t.reshape(t.shape[0], t.shape[1], t.shape[2] // 2, 2, t.shape[3] // 2, 2).permute([0, 1, 2, 4, 3, 5]).reshape(t.shape[0], t.shape[1], -1, 4)
 
 
-class SimpleHierarchyPrior(Source):
+class PassiveHierarchyPrior(Source):
     def __init__(self, length, prior, decimal=None, rounding=None, K=1.0, name="SimpleHierarchyPiror"):
-        super(SimpleHierarchyPrior, self).__init__([3, length, length], K, name)
+        super(PassiveHierarchyPrior, self).__init__([3, length, length], K, name)
         self.depth = int(math.log(length, 2))
 
         self.decimal = decimal
@@ -127,6 +127,44 @@ class SimpleHierarchyPrior(Source):
                 assert mean.shape == scale.shape
                 assert mean.shape == z_.shape
                 _logp = -utils.logDiscreteLogistic(z_, mean, scale, self.decimal).reshape(z_.shape[0], -1).sum(-1)
+            logp = logp + _logp
+        return -logp
+
+
+class SimpleHierarchyPrior(Source):
+    def __init__(self, length, nMixing, decimal=None, rounding=None, K=1.0, name="SimpleHierarchyPiror"):
+        super(SimpleHierarchyPrior, self).__init__([3, length, length], K, name)
+        self.depth = int(math.log(length, 2))
+
+        priorList = []
+
+        _length = int(length * length / 4)
+        for n in range(self.depth):
+            if n != self.depth - 1:
+                priorList.append(DiscreteLogistic([3, _length, 3], decimal, rounding))
+            else:
+                priorList.append(MixtureDiscreteLogistic([3, _length, 4], nMixing, decimal, rounding))
+            _length = int(_length / 4)
+
+        self.priorList = torch.nn.ModuleList(priorList)
+
+        assert len(priorList) == self.depth
+
+    def sample(self, batchSize, K=None):
+        raise Exception("Not implemented")
+
+    def logProbability(self, z, K=None):
+        logp = z.new_zeros(z.shape[0])
+        ul = z
+        for no in range(self.depth):
+            if no == self.depth - 1:
+                ul = ul.reshape(*ul.shape[:2], 1, 4)
+                _logp = self.priorList[no]._energy(ul)
+            else:
+                _x = im2grp(ul)
+                z_ = _x[:, :, :, 1:].contiguous()
+                ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+                _logp = self.priorList[no]._energy(z_)
             logp = logp + _logp
         return -logp
 
