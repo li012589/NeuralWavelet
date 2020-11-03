@@ -76,7 +76,6 @@ vpp = torch.cat([s, d], -1)
 
 assert vpp.allclose(trans_v)
 
-'''
 l1 = torch.nn.Conv1d(3, 6, 3)
 l1.bias.data.zero_()
 
@@ -131,11 +130,10 @@ weight = torch.tensor([[[0, 1, 0],
 
 l2.weight.data[:, :, :] = weight
 
-o4 = l2(o3)
+tmpd = l2(o3)
 
 
-import pdb
-pdb.set_trace()
+'''
 
 l11 = torch.nn.Conv1d(3, hchnl, 3)
 
