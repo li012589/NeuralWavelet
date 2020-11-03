@@ -1,9 +1,11 @@
 import torch
 from flow import ScalingNshifting
 
+originalChnl = 3
 lineSize = 4
 batch = 2
 hchnl = 10
+nhidden = 2
 
 decimal = ScalingNshifting(256, -128)
 
@@ -22,8 +24,6 @@ transMatrix = torch.tensor([[1/2, 1/2, 0, 0, 0, 0, 0, 0],
                             [0, 0, 0, 0, 0, 0, -1, 1]])
 
 trans_v = torch.matmul(v, transMatrix.t())
-
-originalChnl = 3
 
 def initMethod1(originalChnl):
     return torch.cat([torch.ones(originalChnl, 1), torch.zeros(originalChnl, 2)], 1).reshape(originalChnl, 1, 3)
@@ -64,9 +64,9 @@ def buildLayers(initMethod, originalChnl, hchnl, nhidden=1, right=True):
 
     return torch.nn.Sequential(*convList)
 
-layer1 = buildLayers(lambda: initMethod1(originalChnl), originalChnl, hchnl, 2)
+layer1 = buildLayers(lambda: initMethod1(originalChnl), originalChnl, hchnl, nhidden)
 
-layer2 = buildLayers(lambda: initMethod2(originalChnl), originalChnl, hchnl, 2, False)
+layer2 = buildLayers(lambda: initMethod2(originalChnl), originalChnl, hchnl, nhidden, False)
 
 d = e - layer1(o)
 
