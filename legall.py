@@ -1,7 +1,11 @@
 import torch
+from harr import buildLayers
 
+originalChnl = 3
 lineSize = 4
 batch = 2
+hchnl = 10
+nhidden = 2
 
 o = torch.randn(batch, 3, lineSize)
 e = torch.randn(batch, 3, lineSize)
@@ -18,6 +22,23 @@ transMatrix = torch.tensor([[3/4, 1/2, -1/4, 0, 0, 0, 0, 0],
                             [0, 0, 0, 0, 0, 0, -1, 1]])
 
 trans_v = torch.matmul(v, transMatrix.t())
+
+def initMethod1(originalChnl):
+    return torch.cat([torch.ones(originalChnl, 1, 2) / 2, torch.zeros(originalChnl, 1, 1)], -1)
+
+def initMethod2(originalChnl):
+    return torch.cat([torch.zeros(originalChnl, 1, 1), torch.ones(originalChnl, 1, 2) / 4], -1)
+
+layer1 = buildLayers(lambda: initMethod1(originalChnl), originalChnl, hchnl, nhidden)
+layer2 = buildLayers(lambda: initMethod2(originalChnl), originalChnl, hchnl, nhidden, False)
+
+d = e - layer1(o)
+
+s = o + layer2(d)
+
+vpp = torch.cat([s, d], -1)
+
+assert vpp.allclose(trans_v)
 
 l1 = torch.nn.Conv1d(3, 3, 2)
 
