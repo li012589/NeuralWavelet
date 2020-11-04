@@ -16,6 +16,7 @@ group.add_argument('-target', type=str, default='CIFAR', choices=['CIFAR', 'Imag
 group = parser.add_argument_group("Architecture Parameters")
 group.add_argument("-repeat", type=int, default=1, help="num of disentangler layers of each RG scale")
 group.add_argument("-hchnl", type=int, default=12, help="intermediate channel dimension of Conv2d inside NICE inside MERA")
+group.add_argument("-nhidden", type=int, default=1, help="num of intermediate channel of Conv2d inside NICE inside MERA")
 group.add_argument("-nMixing", type=int, default=5, help="num of mixing distributions of last sub-priors")
 
 group = parser.add_argument_group('Learning  parameters')
@@ -36,7 +37,7 @@ device = torch.device("cpu" if args.cuda < 0 else "cuda:" + str(args.cuda))
 
 # Creating save folder
 if args.folder is None:
-    rootFolder = './opt/default_easyMera_' + args.target + "_simplePrior_" + str(args.simplePrior) + "_repeat_" + str(args.repeat) + "_hchnl_" + str(args.hchnl) + "_nMixing_" + str(args.nMixing) + "/"
+    rootFolder = './opt/default_easyMera_' + args.target + "_simplePrior_" + str(args.simplePrior) + "_repeat_" + str(args.repeat) + "_hchnl_" + str(args.hchnl) + "_nhidden_" + str(args.nhidden) + "_nMixing_" + str(args.nMixing) + "/"
     print("No specified saving path, using", rootFolder)
 else:
     rootFolder = args.folder
@@ -49,6 +50,7 @@ if not args.load:
     target = args.target
     repeat = args.repeat
     hchnl = args.hchnl
+    nhidden = args.nhidden
     nMixing = args.nMixing
     epoch = args.epoch
     batch = args.batch
@@ -56,7 +58,7 @@ if not args.load:
     simplePrior = args.simplePrior
     lr = args.lr
     with open(rootFolder + "/parameter.json", "w") as f:
-        config = {'target': target, 'repeat': repeat, 'hchnl': hchnl, 'nMixing': nMixing, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr, 'simplePrior': simplePrior}
+        config = {'target': target, 'repeat': repeat, 'hchnl': hchnl, 'nhidden': nhidden, 'nMixing': nMixing, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr, 'simplePrior': simplePrior}
         json.dump(config, f)
 else:
     # load saved parameters, and decoding them to mem
@@ -135,17 +137,37 @@ def initMethod(weight, bias, num):
 '''
 
 
+def buildLayers(shapeList):
+    layers = []
+    for no, chn in enumerate(shapeList[:-1]):
+        if no != 0 and no != len(shapeList) - 2:
+            layers.append(torch.nn.Conv2d(chn, shapeList[no + 1], 1))
+        else:
+            layers.append(torch.nn.Conv2d(chn, shapeList[no + 1], 3, padding=1))
+        if no != len(shapeList) - 2:
+            layers.append(torch.nn.ReLU(inplace=True))
+    return layers
+
+
 layerList = []
+shapeList = [targetSize[0] * 3] + [hchnl] * (nhidden + 1) + [targetSize[0]]
 for i in range(4 * repeat):
-    layerList.append(torch.nn.Sequential(torch.nn.Conv2d(9, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 3, 3, padding=1)))
+    layers = buildLayers(shapeList)
+    layerList.append(torch.nn.Sequential(*layers))
+    #layerList.append(torch.nn.Sequential(torch.nn.Conv2d(9, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 3, 3, padding=1)))
     torch.nn.init.zeros_(layerList[-1][-1].weight)
     torch.nn.init.zeros_(layerList[-1][-1].bias)
 
+shapeList = [targetSize[0]] + [hchnl] * (nhidden + 1) + [targetSize[0] * 3]
 if not simplePrior:
     meanNNlist = []
     scaleNNlist = []
-    meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 9, 3, padding=1)))
-    scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 9, 3, padding=1)))
+    layers = buildLayers(shapeList)
+    meanNNlist.append(torch.nn.Sequential(*layers))
+    #meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 9, 3, padding=1)))
+    layers = buildLayers(shapeList)
+    scaleNNlist.append(torch.nn.Sequential(*layers))
+    #scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, hchnl, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, hchnl, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(hchnl, 9, 3, padding=1)))
     torch.nn.init.zeros_(meanNNlist[-1][-1].weight)
     torch.nn.init.zeros_(meanNNlist[-1][-1].bias)
     torch.nn.init.zeros_(scaleNNlist[-1][-1].weight)
