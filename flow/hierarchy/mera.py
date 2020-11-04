@@ -215,20 +215,21 @@ class SimpleMERA(Flow):
             for i in range(4 * self.repeat):
                 if i % 4 == 0:
                     tmp = torch.cat([ur, dl, dr], 1)
-                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     ul = ul + tmp
                 elif i % 4 == 1:
                     tmp = torch.cat([ul, dl, dr], 1)
-                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     ur = ur + tmp
                 elif i % 4 == 2:
                     tmp = torch.cat([ul, ur, dr], 1)
-                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     dl = dl + tmp
                 else:
                     tmp = torch.cat([ul, ur, dl], 1)
-                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     dr = dr + tmp
+
             if self.meanNNlist is not None and self.scaleNNlist is not None:
                 self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(ul))).contiguous())
                 self.scaleList.append(reform(self.scaleNNlist[no](self.decimal.inverse_(ul))).contiguous())
@@ -272,19 +273,19 @@ class SimpleMERA(Flow):
             for i in reversed(range(4 * self.repeat)):
                 if i % 4 == 0:
                     tmp = torch.cat([ur, dl, dr], 1)
-                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     ul = ul - tmp
                 elif i % 4 == 1:
                     tmp = torch.cat([ul, dl, dr], 1)
-                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     ur = ur - tmp
                 elif i % 4 == 2:
                     tmp = torch.cat([ul, ur, dr], 1)
-                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     dl = dl - tmp
                 else:
                     tmp = torch.cat([ul, ur, dl], 1)
-                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     dr = dr - tmp
 
             ur = ur.reshape(*ul.shape, 1)
