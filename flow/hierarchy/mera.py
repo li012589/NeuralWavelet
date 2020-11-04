@@ -86,9 +86,69 @@ class ParameterizedMERA(ParameterizedHierarchyBijector):
         super(ParameterizedMERA, self).__init__(kernelShape, indexIList, indexJList, layerList, meanNNlist, scaleNNlist, decimal, prior, name)
 
 
+def sig2prt(t):
+    return t.reshape(t.shape[0], t.shape[1], t.shape[2], t.shape[3] // 2, 2).permute([0, 2, 1, 3, 4]).reshape(t.shape[0] * t.shape[2], t.shape[1], t.shape[3] // 2, 2)
+
+
+def prt2sig(t):
+    return t.reshape(t.shape[0] // (2 * t.shape[-2]), t.shape[-2] * 2, t.shape[1], t.shape[-2] * 2).permute([0, 2, 1, 3])
+
+
 class OneToTwoMERA(Flow):
-    def __init__(self, kernelDim, length, layerList, repeat=1, depth=None, prior=None, name="OneToTwoMERA"):
+    def __init__(self, length, layerList, meanNNlist=None, scaleNNlist=None, repeat=1, nMixing=5, decimal=None, rounding=None, name="OneToTwoMERA"):
+        depth = int(math.log(length, 2))
+
+        if meanNNlist is None or scaleNNlist is None:
+            prior = source.SimpleHierarchyPrior(length, nMixing, decimal, rounding)
+        else:
+            lastPrior = source.MixtureDiscreteLogistic([3, 1, 4], nMixing, decimal, rounding)
+            prior = source.PassiveHierarchyPrior(length, lastPrior, decimal=decimal, rounding=rounding)
         super(OneToTwoMERA, self).__init__(prior, name)
+
+        self.decimal = decimal
+        self.rounding = rounding
+        self.repeat = repeat
+
+        layerList = layerList * depth
+
+        self.layerList = torch.nn.ModuleList(layerList)
+
+        if meanNNlist is not None and scaleNNlist is not None:
+            meanNNlist = meanNNlist * depth
+            scaleNNlist = scaleNNlist * depth
+
+            self.meanNNlist = torch.nn.ModuleList(meanNNlist)
+            self.scaleNNlist = torch.nn.ModuleList(scaleNNlist)
+        else:
+            self.meanNNlist = None
+            self.scaleNNlist = None
+
+    def inverse(self, x):
+        depth = int(math.log(x.shape[-1], 2))
+        for _ in range(2):
+            up = x
+            DN = []
+            for no in range(depth):
+                _x = sig2prt(up)
+                up = _x[:, :, :, 0].contiguous()
+                dn = _x[:, :, :, 1].contiguous()
+                for i in range(2 * self.repeat):
+                    if i % 2 == 0:
+                        pass
+                    else:
+                        pass
+
+    def forward(self, z):
+        pass
+
+    def logProbability(self, x, K=None):
+        z, logp = self.inverse(x)
+        if self.prior is not None:
+            if self.meanNNlist is not None and self.scaleNNlist is not None:
+                return self.prior.logProbability(z, K, self.meanList, self.scaleList) + logp
+            else:
+                return self.prior.logProbability(z, K) + logp
+        return logp
 
 
 def im2grp(t):
@@ -155,19 +215,19 @@ class SimpleMERA(Flow):
             for i in range(4 * self.repeat):
                 if i % 4 == 0:
                     tmp = torch.cat([ur, dl, dr], 1)
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     ul = ul + tmp
                 elif i % 4 == 1:
                     tmp = torch.cat([ul, dl, dr], 1)
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     ur = ur + tmp
                 elif i % 4 == 2:
                     tmp = torch.cat([ul, ur, dr], 1)
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     dl = dl + tmp
                 else:
                     tmp = torch.cat([ul, ur, dl], 1)
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     dr = dr + tmp
             if self.meanNNlist is not None and self.scaleNNlist is not None:
                 self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(ul))).contiguous())
@@ -212,19 +272,19 @@ class SimpleMERA(Flow):
             for i in reversed(range(4 * self.repeat)):
                 if i % 4 == 0:
                     tmp = torch.cat([ur, dl, dr], 1)
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     ul = ul - tmp
                 elif i % 4 == 1:
                     tmp = torch.cat([ul, dl, dr], 1)
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     ur = ur - tmp
                 elif i % 4 == 2:
                     tmp = torch.cat([ul, ur, dr], 1)
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     dl = dl - tmp
                 else:
                     tmp = torch.cat([ul, ur, dl], 1)
-                    tmp = self.rounding(self.layerList[no](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = self.rounding(self.layerList[no * 4 + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     dr = dr - tmp
 
             ur = ur.reshape(*ul.shape, 1)
