@@ -86,10 +86,6 @@ class ParameterizedMERA(ParameterizedHierarchyBijector):
         super(ParameterizedMERA, self).__init__(kernelShape, indexIList, indexJList, layerList, meanNNlist, scaleNNlist, decimal, prior, name)
 
 
-def sig2prt(t):
-    return t.reshape(t.shape[0], t.shape[1], t.shape[2], t.shape[3] // 2, 2).permute([0, 2, 1, 3, 4]).reshape(t.shape[0] * t.shape[2], t.shape[1], t.shape[3] // 2, 2)
-
-
 def prt2sig(t):
     return t.reshape(t.shape[0] // (2 * t.shape[-2]), t.shape[-2] * 2, t.shape[1], t.shape[-2] * 2).permute([0, 2, 1, 3])
 
@@ -126,20 +122,59 @@ class OneToTwoMERA(Flow):
     def inverse(self, x):
         depth = int(math.log(x.shape[-1], 2))
         for _ in range(2):
-            up = x
+            up = x.permute([0, 2, 1, 3]).reshape(x.shape[0] * x.shape[2], x.shape[1], x.shape[3])
+            DN = []
+            for no in range(depth):
+                _x = up.reshape(*up.shape[:-1], up.shape[-1] // 2, 2)
+                up = _x[:, :, :, 0].contiguous()
+                dn = _x[:, :, :, 1].contiguous()
+                for i in range(2 * self.repeat):
+                    if i % 2 == 0:
+                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(up)) * self.decimal.scaling)
+                        dn = dn - tmp
+                    else:
+                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(dn)) * self.decimal.scaling)
+                        up = up + tmp
+
+                DN.append(dn)
+
+            for no in reversed(range(depth)):
+                dn = DN[no].reshape(*up.shape, 1)
+                up = up.reshape(*up.shape, 1)
+                _x = torch.cat([up, dn], -1)
+                up = _x.reshape(*_x.shape[:-2], -1)
+
+            up = up.reshape(up.shape[0] // x.shape[-2], x.shape[-2], up.shape[1], x.shape[-2]).permute([0, 2, 1, 3])
+            x = up.permute([0, 1, 3, 2]).contiguous()
+        return x, x.new_zeros(x.shape[0])
+
+    def forward(self, z):
+        depth = int(math.log(z.shape[-1], 2))
+        for _ in range(2):
+            up = z
             DN = []
             for no in range(depth):
                 _x = sig2prt(up)
                 up = _x[:, :, :, 0].contiguous()
                 dn = _x[:, :, :, 1].contiguous()
-                for i in range(2 * self.repeat):
+                DN.append(dn)
+            for no in reversed(range(depth)):
+                dn = DN[no]
+                for i in reversed(range(2 * self.repeat)):
                     if i % 2 == 0:
-                        pass
+                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(up)))
+                        dn = dn + tmp
                     else:
-                        pass
+                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(dn)))
+                        up = up - tmp
 
-    def forward(self, z):
-        pass
+                dn = dn.reshape(*up.shape, 1)
+
+                _x = torch.cat([up, dn], -1)
+                up = prt2sig(_x)
+
+            z = up.permute([0, 1, 3, 2])
+        return z, z.new_zeros(z.shape[0])
 
     def logProbability(self, x, K=None):
         z, logp = self.inverse(x)
