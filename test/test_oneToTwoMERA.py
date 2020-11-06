@@ -165,33 +165,64 @@ def test_bijective():
 
 
 def test_saveload():
-    decimal = flow.ScalingNshifting(256, -128)
+    shapeList2D = [3] + [12] * (1 + 1) + [3 * 3]
+    shapeList1D = [3] + [12] * (1 + 1) + [3]
+
+    def buildLayers2D(shapeList):
+        layers = []
+        for no, chn in enumerate(shapeList[:-1]):
+            if no != 0 and no != len(shapeList) - 2:
+                layers.append(torch.nn.Conv2d(chn, shapeList[no + 1], 1))
+            else:
+                layers.append(torch.nn.Conv2d(chn, shapeList[no + 1], 3, padding=1))
+            if no != len(shapeList) - 2:
+                layers.append(torch.nn.ReLU(inplace=True))
+        return layers
+
+    def buildLayers1D(shapeList):
+        layers = []
+        for no, chn in enumerate(shapeList[:-1]):
+            if no != 0 and no != len(shapeList) - 2:
+                layers.append(torch.nn.Conv1d(chn, shapeList[no + 1], 1))
+            else:
+                layers.append(torch.nn.Conv1d(chn, shapeList[no + 1], 3, padding=1))
+            if no != len(shapeList) - 2:
+                layers.append(torch.nn.ReLU(inplace=True))
+        layers = torch.nn.Sequential(*layers)
+        #torch.nn.init.zeros_(layers[-1].weight)
+        #torch.nn.init.zeros_(layers[-1].bias)
+        return layers
+
+    decimal = flow.ScalingNshifting(256, 0)
 
     layerList = []
-    for i in range(4):
-        f = torch.nn.Sequential(torch.nn.Conv2d(9, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 3, 3, padding=1))
-        layerList.append(f)
+    for i in range(2 * 2):
+        layerList.append(buildLayers1D(shapeList1D))
 
     meanNNlist = []
     scaleNNlist = []
-    meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
-    scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
+    layers = buildLayers2D(shapeList2D)
+    meanNNlist.append(torch.nn.Sequential(*layers))
+    layers = buildLayers2D(shapeList2D)
+    scaleNNlist.append(torch.nn.Sequential(*layers))
 
-    t = flow.SimpleMERA(8, layerList, meanNNlist, scaleNNlist, 1, 5, decimal, utils.roundingWidentityGradient)
+    t = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, 5, decimal=decimal, rounding=utils.roundingWidentityGradient)
 
-    decimal = flow.ScalingNshifting(256, -128)
+
+    decimal = flow.ScalingNshifting(256, 0)
 
     layerList = []
-    for i in range(4):
-        f = torch.nn.Sequential(torch.nn.Conv2d(9, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 3, 3, padding=1))
-        layerList.append(f)
+    for i in range(2 * 2):
+        layerList.append(buildLayers1D(shapeList1D))
 
     meanNNlist = []
     scaleNNlist = []
-    meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
-    scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
+    layers = buildLayers2D(shapeList2D)
+    meanNNlist.append(torch.nn.Sequential(*layers))
+    layers = buildLayers2D(shapeList2D)
+    scaleNNlist.append(torch.nn.Sequential(*layers))
 
-    tt = flow.SimpleMERA(8, layerList, meanNNlist, scaleNNlist, 1, 5, decimal, utils.roundingWidentityGradient)
+    tt = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, 5, decimal=decimal, rounding=utils.roundingWidentityGradient)
 
     samples = torch.randint(0, 255, (100, 3, 8, 8)).float()
 
@@ -210,6 +241,6 @@ def test_saveload():
 
 
 if __name__ == "__main__":
-    #test_wavelet()
+    test_wavelet()
     test_bijective()
-    #test_saveload()
+    test_saveload()
