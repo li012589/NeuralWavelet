@@ -150,6 +150,17 @@ class OneToTwoMERA(Flow):
 
             up = up.reshape(up.shape[0] // x.shape[-2], x.shape[-2], up.shape[1], x.shape[-2]).permute([0, 2, 1, 3])
             x = up.permute([0, 1, 3, 2]).contiguous()
+
+        if self.meanNNlist is not None and self.scaleNNlist is not None:
+            self.meanList = []
+            self.scaleList = []
+            up = x
+            for no in range(depth):
+                _x = im2grp(up)
+                up = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+                self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(up))).contiguous())
+                self.scaleList.append(reform(self.scaleNNlist[no](self.decimal.inverse_(up))).contiguous())
+
         return x, x.new_zeros(x.shape[0])
 
     def forward(self, z):
