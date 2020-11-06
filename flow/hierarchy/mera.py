@@ -119,6 +119,8 @@ class OneToTwoMERA(Flow):
             self.meanNNlist = None
             self.scaleNNlist = None
 
+        self.tmpList = []
+
     def inverse(self, x):
         depth = int(math.log(x.shape[-1], 2))
         for _ in range(2):
@@ -132,9 +134,11 @@ class OneToTwoMERA(Flow):
                     if i % 2 == 0:
                         tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(up)) * self.decimal.scaling)
                         dn = dn - tmp
+                        self.tmpList.append(tmp)
                     else:
                         tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(dn)) * self.decimal.scaling)
                         up = up + tmp
+                        self.tmpList.append(tmp)
 
                 DN.append(dn)
 
@@ -151,10 +155,11 @@ class OneToTwoMERA(Flow):
     def forward(self, z):
         depth = int(math.log(z.shape[-1], 2))
         for _ in range(2):
-            up = z
+            z = z.permute([0, 1, 3, 2])
+            up = z.permute([0, 2, 1, 3]).reshape(z.shape[0] * z.shape[2], z.shape[1], z.shape[3]).contiguous()
             DN = []
             for no in range(depth):
-                _x = sig2prt(up)
+                _x = up.reshape(*up.shape[:-1], up.shape[-1] // 2, 2)
                 up = _x[:, :, :, 0].contiguous()
                 dn = _x[:, :, :, 1].contiguous()
                 DN.append(dn)
@@ -162,18 +167,19 @@ class OneToTwoMERA(Flow):
                 dn = DN[no]
                 for i in reversed(range(2 * self.repeat)):
                     if i % 2 == 0:
-                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(up)))
+                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(up)) * self.decimal.scaling)
                         dn = dn + tmp
                     else:
-                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(dn)))
+                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(dn)) * self.decimal.scaling)
                         up = up - tmp
 
                 dn = dn.reshape(*up.shape, 1)
+                up = up.reshape(*up.shape, 1)
 
-                _x = torch.cat([up, dn], -1)
-                up = prt2sig(_x)
+                _x = torch.cat([up, dn], -1).reshape(*up.shape[:-2], up.shape[-2] * 2)
+                up = _x.contiguous()
 
-            z = up.permute([0, 1, 3, 2])
+            z = up.reshape(up.shape[0] // z.shape[-2], z.shape[-2], up.shape[1], z.shape[-2]).permute([0, 2, 1, 3]).contiguous()
         return z, z.new_zeros(z.shape[0])
 
     def logProbability(self, x, K=None):
