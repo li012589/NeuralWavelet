@@ -1,6 +1,15 @@
 import torch
 
 
+# 1 = right, 2 = left
+def idenInitMethod1(originalChnl):
+    return torch.cat([torch.ones(originalChnl, 1), torch.zeros(originalChnl, 2)], 1).reshape(originalChnl, 1, 3)
+
+
+def idenInitMethod2(originalChnl):
+    return torch.cat([torch.zeros(originalChnl, 2), torch.ones(originalChnl, 1)], 1).reshape(originalChnl, 1, 3)
+
+
 def harrInitMethod1(originalChnl):
     return torch.cat([torch.ones(originalChnl, 1), torch.zeros(originalChnl, 2)], 1).reshape(originalChnl, 1, 3)
 

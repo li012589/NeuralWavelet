@@ -57,13 +57,13 @@ def test_wavelet():
     orders = [True, False]
 
     layerList = []
-    for i in range(1):
-        for j in range(2):
-            layerList.append(buildWaveletLayers(initMethods[j], 3, 12, 1, orders[j]))
+    for j in range(2):
+        layerList.append(buildWaveletLayers(initMethods[j], 3, 12, 1, orders[j]))
 
-    shapeList = [3] + [12] * (1 + 1) + [3 * 3]
+    shapeList2D = [3] + [12] * (1 + 1) + [3 * 3]
+    shapeList1D = [3] + [12] * (1 + 1) + [3]
 
-    def buildLayers(shapeList):
+    def buildLayers2D(shapeList):
         layers = []
         for no, chn in enumerate(shapeList[:-1]):
             if no != 0 and no != len(shapeList) - 2:
@@ -74,18 +74,36 @@ def test_wavelet():
                 layers.append(torch.nn.ReLU(inplace=True))
         return layers
 
+    def buildLayers1D(shapeList):
+        layers = []
+        for no, chn in enumerate(shapeList[:-1]):
+            if no != 0 and no != len(shapeList) - 2:
+                layers.append(torch.nn.Conv1d(chn, shapeList[no + 1], 1))
+            else:
+                layers.append(torch.nn.Conv1d(chn, shapeList[no + 1], 3, padding=1))
+            if no != len(shapeList) - 2:
+                layers.append(torch.nn.ReLU(inplace=True))
+        layers = torch.nn.Sequential(*layers)
+        torch.nn.init.zeros_(layers[-1].weight)
+        torch.nn.init.zeros_(layers[-1].bias)
+        return layers
+
+    # repeat, add one more layer of NICE
+    for _ in range(2):
+        layerList.append(buildLayers1D(shapeList1D))
+
     meanNNlist = []
     scaleNNlist = []
-    layers = buildLayers(shapeList)
+    layers = buildLayers2D(shapeList2D)
     meanNNlist.append(torch.nn.Sequential(*layers))
-    layers = buildLayers(shapeList)
+    layers = buildLayers2D(shapeList2D)
     scaleNNlist.append(torch.nn.Sequential(*layers))
     torch.nn.init.zeros_(meanNNlist[-1][-1].weight)
     torch.nn.init.zeros_(meanNNlist[-1][-1].bias)
     torch.nn.init.zeros_(scaleNNlist[-1][-1].weight)
     torch.nn.init.zeros_(scaleNNlist[-1][-1].bias)
 
-    f = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 1, 5, decimal=decimal, rounding=psudoRounding.forward)
+    f = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, 5, decimal=decimal, rounding=psudoRounding.forward)
 
     vpp = f.inverse(v)[0]
 
