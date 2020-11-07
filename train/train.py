@@ -45,7 +45,6 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
         if testGrad:
             countList = []
         for samples, _ in trainLoader:
-            samples = samples
             lossRaw = -flow.logProbability(samples)
             _loss = lossRaw.mean()
 
@@ -68,9 +67,9 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
         # vaildation
         testLoss = []
         for samples, _ in testLoader:
-            samples = samples
-            lossRaw = -flow.logProbability(samples)
-            _loss = lossRaw.mean()
+            with torch.no_grad():
+                lossRaw = -flow.logProbability(samples)
+                _loss = lossRaw.mean()
             testLoss.append(_loss.detach().cpu().item())
         testLoss = np.array(testLoss)
         VALLOSS.append(testLoss.mean())
