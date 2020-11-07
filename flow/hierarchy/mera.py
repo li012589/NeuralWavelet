@@ -119,8 +119,6 @@ class OneToTwoMERA(Flow):
             self.meanNNlist = None
             self.scaleNNlist = None
 
-        self.tmpList = []
-
     def inverse(self, x):
         depth = int(math.log(x.shape[-1], 2))
         for _ in range(2):
@@ -134,11 +132,9 @@ class OneToTwoMERA(Flow):
                     if i % 2 == 0:
                         tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(up)) * self.decimal.scaling)
                         dn = dn - tmp
-                        self.tmpList.append(tmp)
                     else:
                         tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(dn)) * self.decimal.scaling)
                         up = up + tmp
-                        self.tmpList.append(tmp)
 
                 DN.append(dn)
 
