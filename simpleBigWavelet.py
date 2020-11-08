@@ -60,8 +60,14 @@ else:
 print("load saving at " + name)
 loadedF = torch.load(name, map_location=device)
 
-layerList = loadedF.layerList[:(4 * repeat)]
-layerList = [layerList[no] for no in range(4 * repeat)]
+if 'easyMera' in name:
+    layerList = loadedF.layerList[:(4 * repeat)]
+    layerList = [layerList[no] for no in range(4 * repeat)]
+elif '1to2Mera' in name:
+    layerList = loadedF.layerList[:(4 * repeat)]
+    layerList = [layerList[no] for no in range(4 * repeat)]
+else:
+    raise Exception("model not define")
 
 # Define dimensions
 targetSize = IMG.shape[1:]
@@ -70,10 +76,16 @@ channel = targetSize[0]
 blockLength = targetSize[-1]
 
 # Define nomaliziation and decimal
-decimal = flow.ScalingNshifting(256, -128)
+if 'easyMera' in name:
+    decimal = flow.ScalingNshifting(256, -128)
+elif '1to2Mera' in name:
+    decimal = flow.ScalingNshifting(256, 0)
+else:
+    raise Exception("model not define")
+
 rounding = utils.roundingWidentityGradient
 
-# Building MERA model
+# Building MERA mode
 if 'easyMera' in name:
     f = flow.SimpleMERA(blockLength, layerList, None, None, repeat, args.depth, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
 elif '1to2Mera' in name:
