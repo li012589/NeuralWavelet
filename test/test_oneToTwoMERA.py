@@ -109,6 +109,36 @@ def test_wavelet():
 
     assert_allclose(vpp.detach().numpy(), transV.detach().numpy())
 
+    # Test depth
+    vp = torch.randint(255, [100, 3, 8, 8]).float()
+
+    depth = 2
+    up = vp
+    for _ in range(2):
+        blockSize = 8
+        DN = []
+        for i in range(depth):
+            transMatrix = buildTransMatrix(blockSize)
+            up = torch.matmul(up, transMatrix.t())
+            blockSize //= 2
+            up = up.reshape(*up.shape[:-2], up.shape[-2], blockSize, 2).transpose(-1, -2)
+            DN.append(up[:, :, :, 1, :])
+            up = up[:, :, :, 0, :]
+        for i in reversed(range(depth)):
+            up = up.reshape(up.shape[0], up.shape[1], up.shape[2], 1, up.shape[3])
+            dn = DN[i].reshape(*up.shape)
+            blockSize *= 2
+            up = torch.cat([up, dn], -2).transpose(-1, -2).reshape(up.shape[0], up.shape[1], up.shape[2], blockSize)
+        up = up.transpose(-1, -2)
+
+    transVp = up
+
+    fp = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, depth, 5, decimal=decimal, rounding=psudoRounding.forward)
+
+    vpp = fp.inverse(vp)[0]
+
+    assert_allclose(vpp.detach().numpy(), transVp.detach().numpy())
+
 
 def test_bijective():
 
