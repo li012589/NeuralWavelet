@@ -198,7 +198,7 @@ else:
     meanNNlist = None
     scaleNNlist = None
 
-f = flow.OneToTwoMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+f = flow.OneToTwoMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
 
 
 # Define plot function

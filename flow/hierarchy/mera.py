@@ -5,6 +5,7 @@ from utils import getIndeices
 from flow import Flow
 import source
 
+
 class MERA(HierarchyBijector):
     def __init__(self, kernelDim, length, layerList, repeat=1, depth=None, prior=None, name="MERA"):
         kernelSize = 2
@@ -86,13 +87,11 @@ class ParameterizedMERA(ParameterizedHierarchyBijector):
         super(ParameterizedMERA, self).__init__(kernelShape, indexIList, indexJList, layerList, meanNNlist, scaleNNlist, decimal, prior, name)
 
 
-def prt2sig(t):
-    return t.reshape(t.shape[0] // (2 * t.shape[-2]), t.shape[-2] * 2, t.shape[1], t.shape[-2] * 2).permute([0, 2, 1, 3])
-
-
 class OneToTwoMERA(Flow):
-    def __init__(self, length, layerList, meanNNlist=None, scaleNNlist=None, repeat=1, nMixing=5, decimal=None, rounding=None, name="OneToTwoMERA"):
-        depth = int(math.log(length, 2))
+    def __init__(self, length, layerList, meanNNlist=None, scaleNNlist=None, repeat=1, depth=None, nMixing=5, decimal=None, rounding=None, name="OneToTwoMERA"):
+        kernelSize = 2
+        if depth is None or depth == -1:
+            depth = int(math.log(length, kernelSize))
 
         if meanNNlist is None or scaleNNlist is None:
             prior = source.SimpleHierarchyPrior(length, nMixing, decimal, rounding)
@@ -104,6 +103,7 @@ class OneToTwoMERA(Flow):
         self.decimal = decimal
         self.rounding = rounding
         self.repeat = repeat
+        self.depth = depth
 
         layerList = layerList * depth
 
@@ -120,7 +120,7 @@ class OneToTwoMERA(Flow):
             self.scaleNNlist = None
 
     def inverse(self, x):
-        depth = int(math.log(x.shape[-1], 2))
+        depth = self.depth
         for _ in range(2):
             up = x.permute([0, 2, 1, 3]).reshape(x.shape[0] * x.shape[2], x.shape[1], x.shape[3])
             DN = []
@@ -160,7 +160,7 @@ class OneToTwoMERA(Flow):
         return x, x.new_zeros(x.shape[0])
 
     def forward(self, z):
-        depth = int(math.log(z.shape[-1], 2))
+        depth = self.depth
         for _ in range(2):
             z = z.permute([0, 1, 3, 2])
             up = z.permute([0, 2, 1, 3]).reshape(z.shape[0] * z.shape[2], z.shape[1], z.shape[3]).contiguous()
@@ -217,8 +217,10 @@ def reform(tensor):
 
 
 class SimpleMERA(Flow):
-    def __init__(self, length, layerList, meanNNlist=None, scaleNNlist=None, repeat=1, nMixing=5, decimal=None, rounding=None, name="SimpleMERA"):
-        depth = int(math.log(length, 2))
+    def __init__(self, length, layerList, meanNNlist=None, scaleNNlist=None, repeat=1, depth=None, nMixing=5, decimal=None, rounding=None, name="SimpleMERA"):
+        kernelSize = 2
+        if depth is None or depth == -1:
+            depth = int(math.log(length, kernelSize))
 
         if meanNNlist is None or scaleNNlist is None:
             prior = source.SimpleHierarchyPrior(length, nMixing, decimal, rounding)
@@ -230,6 +232,7 @@ class SimpleMERA(Flow):
         self.decimal = decimal
         self.rounding = rounding
         self.repeat = repeat
+        self.depth = depth
 
         layerList = layerList * depth
 
@@ -246,7 +249,7 @@ class SimpleMERA(Flow):
             self.scaleNNlist = None
 
     def inverse(self, x):
-        depth = int(math.log(x.shape[-1], 2))
+        depth = self.depth
         self.meanList = []
         self.scaleList = []
 
@@ -298,7 +301,7 @@ class SimpleMERA(Flow):
         return ul, ul.new_zeros(ul.shape[0])
 
     def forward(self, z):
-        depth = int(math.log(z.shape[-1], 2))
+        depth = self.depth
 
         ul = z
         UR = []

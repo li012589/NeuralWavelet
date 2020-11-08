@@ -103,7 +103,7 @@ def test_wavelet():
     torch.nn.init.zeros_(scaleNNlist[-1][-1].weight)
     torch.nn.init.zeros_(scaleNNlist[-1][-1].bias)
 
-    f = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, 5, decimal=decimal, rounding=psudoRounding.forward)
+    f = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, None, 5, decimal=decimal, rounding=psudoRounding.forward)
 
     vpp = f.inverse(v)[0]
 
@@ -153,7 +153,7 @@ def test_bijective():
     layers = buildLayers2D(shapeList2D)
     scaleNNlist.append(torch.nn.Sequential(*layers))
 
-    t = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, 5, decimal=decimal, rounding=utils.roundingWidentityGradient)
+    t = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, None, 5, decimal=decimal, rounding=utils.roundingWidentityGradient)
 
     samples = torch.randint(0, 255, (100, 3, 8, 8)).float()
 
@@ -206,7 +206,7 @@ def test_saveload():
     layers = buildLayers2D(shapeList2D)
     scaleNNlist.append(torch.nn.Sequential(*layers))
 
-    t = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, 5, decimal=decimal, rounding=utils.roundingWidentityGradient)
+    t = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, None, 5, decimal=decimal, rounding=utils.roundingWidentityGradient)
 
 
     decimal = flow.ScalingNshifting(256, 0)
@@ -222,7 +222,7 @@ def test_saveload():
     layers = buildLayers2D(shapeList2D)
     scaleNNlist.append(torch.nn.Sequential(*layers))
 
-    tt = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, 5, decimal=decimal, rounding=utils.roundingWidentityGradient)
+    tt = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, None, 5, decimal=decimal, rounding=utils.roundingWidentityGradient)
 
     samples = torch.randint(0, 255, (100, 3, 8, 8)).float()
 

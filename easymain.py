@@ -177,7 +177,7 @@ else:
     scaleNNlist = None
 
 # Building MERA model
-f = flow.SimpleMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+f = flow.SimpleMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
 
 '''
 from utils import getIndeices

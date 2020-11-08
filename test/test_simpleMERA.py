@@ -28,7 +28,7 @@ def test_bijective():
     meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
     scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
 
-    t = flow.SimpleMERA(8, layerList, meanNNlist, scaleNNlist, 2, 5, decimal, utils.roundingWidentityGradient)
+    t = flow.SimpleMERA(8, layerList, meanNNlist, scaleNNlist, 2, None, 5, decimal, utils.roundingWidentityGradient)
 
     samples = torch.randint(0, 255, (100, 3, 8, 8)).float()
 
@@ -52,7 +52,7 @@ def test_saveload():
     meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
     scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
 
-    t = flow.SimpleMERA(8, layerList, meanNNlist, scaleNNlist, 1, 5, decimal, utils.roundingWidentityGradient)
+    t = flow.SimpleMERA(8, layerList, meanNNlist, scaleNNlist, 1, None, 5, decimal, utils.roundingWidentityGradient)
 
     decimal = flow.ScalingNshifting(256, -128)
 
@@ -66,7 +66,7 @@ def test_saveload():
     meanNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
     scaleNNlist.append(torch.nn.Sequential(torch.nn.Conv2d(3, 9, 3, padding=1), torch.nn.ReLU(inplace=True), torch.nn.Conv2d(9, 9, 1, padding=0), torch.nn.ReLU(inplace=True)))
 
-    tt = flow.SimpleMERA(8, layerList, meanNNlist, scaleNNlist, 1, 5, decimal, utils.roundingWidentityGradient)
+    tt = flow.SimpleMERA(8, layerList, meanNNlist, scaleNNlist, 1, None, 5, decimal, utils.roundingWidentityGradient)
 
     samples = torch.randint(0, 255, (100, 3, 8, 8)).float()
 
