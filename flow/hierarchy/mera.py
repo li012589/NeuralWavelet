@@ -151,7 +151,7 @@ class OneToTwoMERA(Flow):
             self.meanList = []
             self.scaleList = []
             up = x
-            for no in range(depth):
+            for no in range(depth - 1):
                 _x = im2grp(up)
                 up = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
                 self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(up))).contiguous())
@@ -281,7 +281,7 @@ class SimpleMERA(Flow):
                     tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     dr = dr + tmp
 
-            if self.meanNNlist is not None and self.scaleNNlist is not None:
+            if self.meanNNlist is not None and self.scaleNNlist is not None and no != depth - 1:
                 self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(ul))).contiguous())
                 self.scaleList.append(reform(self.scaleNNlist[no](self.decimal.inverse_(ul))).contiguous())
 
