@@ -100,15 +100,20 @@ def back01(tensor):
     return ten
 
 
+def backMeanStd(tensor):
+    mean = IMG.reshape(*IMG.shape[:2], -1).mean(-1).reshape(*IMG.shape[:2], 1, 1)
+    std = IMG.reshape(*IMG.shape[:2], -1).std(-1).reshape(*IMG.shape[:2], 1, 1)
+    return tensor * std.repeat([1, 1, tensor.shape[-1], tensor.shape[-1]]) + mean.repeat([1, 1, tensor.shape[-1], tensor.shape[-1]])
+
 # another renorm fn
 def clip(tensor, l=0, h=255):
     return torch.clamp(tensor, l, h).int()
 
 
 # yet another renorm fn
-def batchNorm(tensor):
+def batchNorm(tensor, base=1.0):
     m = nn.BatchNorm2d(tensor.shape[1], affine=False)
-    return m(tensor).float() + 1.0
+    return m(tensor).float() + base
 
 
 renormFn = lambda x: back01(x)
@@ -128,7 +133,9 @@ for _ in range(args.depth):
     DL.append(renormFn(dl))
     DR.append(renormFn(dr))
 
+#ul = back01(backMeanStd(batchNorm(ul, 0)))
 ul = renormFn(ul)
+#ul = back01(clip(backMeanStd(batchNorm(ul))))
 
 for no in reversed(range(args.depth)):
 
