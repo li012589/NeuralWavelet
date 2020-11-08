@@ -39,7 +39,7 @@ device = torch.device("cpu" if args.cuda < 0 else "cuda:" + str(args.cuda))
 
 # Creating save folder
 if args.folder is None:
-    rootFolder = './opt/default_easyMera_' + args.target + "_simplePrior_" + str(args.simplePrior) + "_initWavelet_" + args.init + "_repeat_" + str(args.repeat) + "_hchnl_" + str(args.hchnl) + "_nhidden_" + str(args.nhidden) + "_nMixing_" + str(args.nMixing) + "/"
+    rootFolder = './opt/default_1to2Mera_' + args.target + "_simplePrior_" + str(args.simplePrior) + "_initWavelet_" + args.init + "_repeat_" + str(args.repeat) + "_hchnl_" + str(args.hchnl) + "_nhidden_" + str(args.nhidden) + "_nMixing_" + str(args.nMixing) + "/"
     print("No specified saving path, using", rootFolder)
 else:
     rootFolder = args.folder
