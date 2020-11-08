@@ -163,6 +163,17 @@ def test_bijective():
 
     assert_allclose(samples.detach().numpy(), rcnSamples.detach().numpy())
 
+    # Test depth argument
+    t = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, 2, 5, decimal=decimal, rounding=utils.roundingWidentityGradient)
+
+    samples = torch.randint(0, 255, (100, 3, 8, 8)).float()
+
+    zSamples, _ = t.inverse(samples)
+    rcnSamples, _ = t.forward(zSamples)
+    prob = t.logProbability(samples)
+
+    assert_allclose(samples.detach().numpy(), rcnSamples.detach().numpy())
+
 
 def test_saveload():
     shapeList2D = [3] + [12] * (1 + 1) + [3 * 3]
@@ -242,5 +253,5 @@ def test_saveload():
 
 if __name__ == "__main__":
     test_wavelet()
-    test_bijective()
-    test_saveload()
+    #test_bijective()
+    #test_saveload()

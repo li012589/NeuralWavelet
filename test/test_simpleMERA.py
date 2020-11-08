@@ -38,6 +38,16 @@ def test_bijective():
 
     assert_allclose(samples.detach().numpy(), rcnSamples.detach().numpy())
 
+    # Test the depth argument
+    t = flow.SimpleMERA(8, layerList, meanNNlist, scaleNNlist, 2, 2, 5, decimal, utils.roundingWidentityGradient)
+
+    samples = torch.randint(0, 255, (100, 3, 8, 8)).float()
+
+    zSamples, _ = t.inverse(samples)
+    rcnSamples, _ = t.forward(zSamples)
+    prob = t.logProbability(samples)
+
+    assert_allclose(samples.detach().numpy(), rcnSamples.detach().numpy())
 
 def test_saveload():
     decimal = flow.ScalingNshifting(256, -128)
@@ -86,4 +96,4 @@ def test_saveload():
 
 if __name__ == "__main__":
     test_bijective()
-    test_saveload()
+    #test_saveload()
