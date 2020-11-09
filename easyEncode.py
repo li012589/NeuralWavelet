@@ -194,46 +194,47 @@ def testBPD(loader, earlyStop=-1):
     ERR = []
 
     count = 0
-    for samples, _ in loader:
-        count += 1
-        z, _ = f.inverse(samples)
+    with torch.no_grad():
+        for samples, _ in loader:
+            count += 1
+            z, _ = f.inverse(samples)
 
-        zparts = divide(z)
+            zparts = divide(z)
 
-        CDF = calCDF()
+            CDF = calCDF()
 
-        state = []
+            state = []
 
-        for i in range(batch):
-            symbols = zparts[i]
-            s = rans.x_init
-            for j in reversed(range(symbols.shape[-1])):
-                cdf = CDF[:, i, j]
-                s = coder.encoder(cdf, symbols[j], s)
-            state.append(rans.flatten(s))
+            for i in range(batch):
+                symbols = zparts[i]
+                s = rans.x_init
+                for j in reversed(range(symbols.shape[-1])):
+                    cdf = CDF[:, i, j]
+                    s = coder.encoder(cdf, symbols[j], s)
+                state.append(rans.flatten(s))
 
-        actualBPD.append(32 / (np.prod(samples.shape[1:])) * np.mean([s.shape[0] for s in state]))
-        theoryBPD.append((-f.logProbability(samples).mean() / (np.prod(samples.shape[1:]) * np.log(2.))).detach().item())
+            actualBPD.append(32 / (np.prod(samples.shape[1:])) * np.mean([s.shape[0] for s in state]))
+            theoryBPD.append((-f.logProbability(samples).mean() / (np.prod(samples.shape[1:]) * np.log(2.))).detach().item())
 
-        rcnParts = []
-        for i in range(batch):
-            s = rans.unflatten(state[i])
-            symbols = []
-            for j in range(np.prod(targetSize)):
-                cdf = CDF[:, i, j]
-                s, rcnSymbol = coder.decoder(cdf, s)
-                symbols.append(rcnSymbol)
-            rcnParts.append(torch.tensor(symbols).reshape(1, -1))
-        rcnParts = torch.cat(rcnParts, 0)
+            rcnParts = []
+            for i in range(batch):
+                s = rans.unflatten(state[i])
+                symbols = []
+                for j in range(np.prod(targetSize)):
+                    cdf = CDF[:, i, j]
+                    s, rcnSymbol = coder.decoder(cdf, s)
+                    symbols.append(rcnSymbol)
+                rcnParts.append(torch.tensor(symbols).reshape(1, -1))
+            rcnParts = torch.cat(rcnParts, 0)
 
-        rcnZ = join(rcnParts)
+            rcnZ = join(rcnParts)
 
-        rcnSamples, _ = f.forward(rcnZ.float())
+            rcnSamples, _ = f.forward(rcnZ.float())
 
-        ERR.append(torch.abs(samples - rcnSamples).sum().item())
+            ERR.append(torch.abs(samples - rcnSamples).sum().item())
 
-        if count >= earlyStop and earlyStop > 0:
-            break
+            if count >= earlyStop and earlyStop > 0:
+                break
 
     actualBPD = np.array(actualBPD)
     theoryBPD = np.array(theoryBPD)
