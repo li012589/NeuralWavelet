@@ -289,6 +289,7 @@ def test_wavelet():
 
     assert_allclose(vpp.detach().numpy(), transVp.detach().numpy())
 
+
 def test_bijective():
 
     shapeList2D = [3] + [12] * (1 + 1) + [3 * 3]
@@ -337,7 +338,6 @@ def test_bijective():
     samples = torch.randint(0, 255, (100, 3, 8, 8)).float()
 
     zSamples, _ = t.inverse(samples)
-
     rcnSamples, _ = t.forward(zSamples)
     prob = t.logProbability(samples)
 
@@ -350,7 +350,7 @@ def test_bijective():
 
     zSamples, _ = t.inverse(samples)
     rcnSamples, _ = t.forward(zSamples)
-    prob = t.logProbability(samples)
+    #prob = t.logProbability(samples)
 
     assert_allclose(samples.detach().numpy(), rcnSamples.detach().numpy())
 
@@ -432,6 +432,6 @@ def test_saveload():
 
 
 if __name__ == "__main__":
-    test_wavelet()
+    #test_wavelet()
     test_bijective()
     #test_saveload()

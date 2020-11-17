@@ -195,13 +195,21 @@ class OneToTwoMERA(Flow):
             dl = DL[no]
             dr = DR[no]
 
+            ur = ur.reshape(*ul.shape, 1)
+            dl = dl.reshape(*ul.shape, 1)
+            dr = dr.reshape(*ul.shape, 1)
+            ul = ul.reshape(*ul.shape, 1)
+
+            _x = torch.cat([ul, ur, dl, dr], -1).reshape(*ul.shape[:2], -1, 4)
+            ul = grp2im(_x).contiguous()
+
             for _ in range(2):
-                ul = ul.permute([0, 3, 1, 2]).reshape(z.shape[0] * z.shape[3], z.shape[1], z.shape[2]).contiguous()
+                ul = ul.permute([0, 3, 1, 2]).reshape(ul.shape[0] * ul.shape[3], ul.shape[1], ul.shape[2])
                 _x = ul.reshape(*ul.shape[:-1], ul.shape[-1] // 2, 2)
                 upper = _x[:, :, :, 0].contiguous()
                 down = _x[:, :, :, 1].contiguous()
 
-                for i in reversed(range(2 * depth)):
+                for i in reversed(range(2 * self.repeat)):
                     if i % 2 == 0:
                         tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(upper)) * self.decimal.scaling)
                         down = down + tmp
@@ -210,11 +218,9 @@ class OneToTwoMERA(Flow):
                         upper = upper - tmp
                 upper = upper.reshape(*upper.shape, 1)
                 down = down.reshape(*down.shape, 1)
-                ul = torch.cat([upper, down], -1).reshape(*ul.shape[:-2], ul.shape[-2] * 2)
+                ul = torch.cat([upper, down], -1).reshape(ul.shape[0] // ul.shape[-1], ul.shape[-1], ul.shape[1], ul.shape[-1]).permute([0, 2, 1, 3])
 
-            import pdb
-            pdb.set_trace()
-        return z, z.new_zeros(z.shape[0])
+        return ul, ul.new_zeros(ul.shape[0])
 
     def logProbability(self, x, K=None):
         z, logp = self.inverse(x)
