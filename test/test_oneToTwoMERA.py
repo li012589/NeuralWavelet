@@ -201,45 +201,6 @@ def test_wavelet():
 
     assert_allclose(vpp.detach().numpy(), transV.detach().numpy())
 
-    '''
-    vpp = ul
-    UR = []
-    DL = []
-    DR = []
-    for _ in range(depth):
-        _x = im2grp(ul)
-        ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
-        ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
-        dl = _x[:, :, :, 2].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
-        dr = _x[:, :, :, 3].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
-        UR.append(renormFn(ur))
-        DL.append(renormFn(dl))
-        DR.append(renormFn(dr))
-
-    #ul = back01(backMeanStd(batchNorm(ul, 0)))
-    ul = renormFn(ul)
-    #ul = back01(clip(backMeanStd(batchNorm(ul))))
-
-    for no in reversed(range(depth)):
-
-        ur = UR[no]
-        dl = DL[no]
-        dr = DR[no]
-
-        upper = torch.cat([ul, ur], -1)
-        down = torch.cat([dl, dr], -1)
-        ul = torch.cat([upper, down], -2)
-
-    # convert zremaoin to numpy array
-    zremain = ul.permute([0, 2, 3, 1]).detach().cpu().numpy()
-
-    waveletPlot = plt.figure(figsize=(8, 8))
-    waveletAx = waveletPlot.add_subplot(111)
-    waveletAx.imshow(zremain[0])
-    plt.axis('off')
-    plt.savefig('./testWavelet2.pdf', bbox_inches="tight", pad_inches=0)
-    plt.close()
-    '''
     # Test depth
     vp = IMG
 
@@ -288,6 +249,60 @@ def test_wavelet():
     vpp = fp.inverse(vp)[0]
 
     assert_allclose(vpp.detach().numpy(), transVp.detach().numpy())
+
+    '''
+    name = './opt/1to2Mera_harr_test/best_TestLoss_model.saving'
+    loadedF = torch.load(name)
+
+    import pdb
+    pdb.set_trace()
+
+    repeat = 2
+    layerList = loadedF.layerList[:(2 * repeat)]
+    layerList = [layerList[no] for no in range(2 * repeat)]
+
+    ff = flow.OneToTwoMERA(IMG.shape[-1], layerList, None, None, repeat, 2, 5, decimal=decimal, rounding=utils.roundingWidentityGradient)
+
+    z, _ = ff.inverse(IMG)
+
+    ul = z
+    UR = []
+    DL = []
+    DR = []
+    for _ in range(depth):
+        _x = im2grp(ul)
+        ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        dl = _x[:, :, :, 2].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        dr = _x[:, :, :, 3].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        UR.append(renormFn(ur))
+        DL.append(renormFn(dl))
+        DR.append(renormFn(dr))
+
+    #ul = back01(backMeanStd(batchNorm(ul, 0)))
+    ul = renormFn(ul)
+    #ul = back01(clip(backMeanStd(batchNorm(ul))))
+
+    for no in reversed(range(depth)):
+
+        ur = UR[no]
+        dl = DL[no]
+        dr = DR[no]
+
+        upper = torch.cat([ul, ur], -1)
+        down = torch.cat([dl, dr], -1)
+        ul = torch.cat([upper, down], -2)
+
+    # convert zremaoin to numpy array
+    zremain = ul.permute([0, 2, 3, 1]).detach().cpu().numpy()
+
+    waveletPlot = plt.figure(figsize=(8, 8))
+    waveletAx = waveletPlot.add_subplot(111)
+    waveletAx.imshow(zremain[0])
+    plt.axis('off')
+    plt.savefig('./testWavelet3.pdf', bbox_inches="tight", pad_inches=0)
+    plt.close()
+    '''
 
 
 def test_bijective():
@@ -432,6 +447,6 @@ def test_saveload():
 
 
 if __name__ == "__main__":
-    #test_wavelet()
-    test_bijective()
+    test_wavelet()
+    #test_bijective()
     #test_saveload()
