@@ -64,8 +64,8 @@ if 'easyMera' in name:
     layerList = loadedF.layerList[:(4 * repeat)]
     layerList = [layerList[no] for no in range(4 * repeat)]
 elif '1to2Mera' in name:
-    layerList = loadedF.layerList[:(4 * repeat)]
-    layerList = [layerList[no] for no in range(4 * repeat)]
+    layerList = loadedF.layerList[:(2 * repeat)]
+    layerList = [layerList[no] for no in range(2 * repeat)]
 else:
     raise Exception("model not define")
 
