@@ -174,11 +174,10 @@ orders = [True, False]
 shapeList1D = [targetSize[0]] + [hchnl] * (nhidden + 1) + [targetSize[0]]
 
 layerList = []
-for i in range(repeat):
-    for j in range(2):
-        layerList.append(buildWaveletLayers(initMethods[j], targetSize[0], hchnl, nhidden, orders[j]))
+for j in range(2):
+    layerList.append(buildWaveletLayers(initMethods[j], targetSize[0], hchnl, nhidden, orders[j]))
 
-for i in range(repeat * (repeat - 1)):
+for i in range(2 * (repeat - 1)):
     layerList.append(buildLayers1D(shapeList1D))
 
 shapeList2D = [targetSize[0]] + [hchnl] * (nhidden + 1) + [targetSize[0] * 3]
@@ -199,7 +198,7 @@ else:
     scaleNNlist = None
 
 f = flow.OneToTwoMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
-
+torch.save(f, rootFolder + 'init_model.saving')
 
 # Define plot function
 def plotfn(f, train, test, LOSS, VALLOSS):
