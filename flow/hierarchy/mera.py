@@ -121,72 +121,99 @@ class OneToTwoMERA(Flow):
 
     def inverse(self, x):
         depth = self.depth
-        for _ in range(2):
-            up = x.permute([0, 2, 1, 3]).reshape(x.shape[0] * x.shape[2], x.shape[1], x.shape[3])
-            DN = []
-            for no in range(depth):
-                _x = up.reshape(*up.shape[:-1], up.shape[-1] // 2, 2)
-                up = _x[:, :, :, 0].contiguous()
-                dn = _x[:, :, :, 1].contiguous()
+        self.meanList = []
+        self.scaleList = []
+
+        UR = []
+        DL = []
+        DR = []
+        ul = x
+        for no in range(depth):
+            ul = ul.permute([0, 2, 1, 3]).reshape(ul.shape[0] * ul.shape[2], ul.shape[1], ul.shape[3])
+            for _ in range(2):
+                _x = ul.reshape(*ul.shape[:-1], ul.shape[-1] // 2, 2)
+                upper = _x[:, :, :, 0].contiguous()
+                down = _x[:, :, :, 1].contiguous()
+
                 for i in range(2 * self.repeat):
                     if i % 2 == 0:
-                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(up)) * self.decimal.scaling)
-                        dn = dn - tmp
+                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(upper)) * self.decimal.scaling)
+                        down = down - tmp
                     else:
-                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(dn)) * self.decimal.scaling)
-                        up = up + tmp
+                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(down)) * self.decimal.scaling)
+                        upper = upper + tmp
+                upper = upper.reshape(*upper.shape, 1)
+                down = down.reshape(*down.shape, 1)
+                ul = torch.cat([upper, down], -1).reshape(*ul.shape)
+                ul = ul.reshape(ul.shape[0] // ul.shape[-1], ul.shape[-1], ul.shape[1], ul.shape[-1]).permute([0, 3, 2, 1]).reshape(*ul.shape)
 
-                DN.append(dn)
+            ul = ul.reshape(ul.shape[0] // ul.shape[-1], ul.shape[-1], ul.shape[1], ul.shape[-1]).permute([0, 2, 1, 3])
+            _x = im2grp(ul)
+            ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+            ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+            dl = _x[:, :, :, 2].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+            dr = _x[:, :, :, 3].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
 
-            for no in reversed(range(depth)):
-                dn = DN[no].reshape(*up.shape, 1)
-                up = up.reshape(*up.shape, 1)
-                _x = torch.cat([up, dn], -1)
-                up = _x.reshape(*_x.shape[:-2], -1)
+            if self.meanNNlist is not None and self.scaleNNlist is not None and no != depth - 1:
+                self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(ul))).contiguous())
+                self.scaleList.append(reform(self.scaleNNlist[no](self.decimal.inverse_(ul))).contiguous())
 
-            up = up.reshape(up.shape[0] // x.shape[-2], x.shape[-2], up.shape[1], x.shape[-2]).permute([0, 2, 1, 3])
-            x = up.permute([0, 1, 3, 2]).contiguous()
+            UR.append(ur)
+            DL.append(dl)
+            DR.append(dr)
 
-        if self.meanNNlist is not None and self.scaleNNlist is not None:
-            self.meanList = []
-            self.scaleList = []
-            up = x
-            for no in range(depth - 1):
-                _x = im2grp(up)
-                up = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
-                self.meanList.append(reform(self.meanNNlist[no](self.decimal.inverse_(up))).contiguous())
-                self.scaleList.append(reform(self.scaleNNlist[no](self.decimal.inverse_(up))).contiguous())
+        for no in reversed(range(depth)):
+            ur = UR[no].reshape(*ul.shape, 1)
+            dl = DL[no].reshape(*ul.shape, 1)
+            dr = DR[no].reshape(*ul.shape, 1)
+            ul = ul.reshape(*ul.shape, 1)
 
-        return x, x.new_zeros(x.shape[0])
+            _x = torch.cat([ul, ur, dl, dr], -1).reshape(*ul.shape[:2], -1, 4)
+            ul = grp2im(_x).contiguous()
+
+        return ul, ul.new_zeros(ul.shape[0])
 
     def forward(self, z):
         depth = self.depth
-        for _ in range(2):
-            z = z.permute([0, 1, 3, 2])
-            up = z.permute([0, 2, 1, 3]).reshape(z.shape[0] * z.shape[2], z.shape[1], z.shape[3]).contiguous()
-            DN = []
-            for no in range(depth):
-                _x = up.reshape(*up.shape[:-1], up.shape[-1] // 2, 2)
-                up = _x[:, :, :, 0].contiguous()
-                dn = _x[:, :, :, 1].contiguous()
-                DN.append(dn)
-            for no in reversed(range(depth)):
-                dn = DN[no]
-                for i in reversed(range(2 * self.repeat)):
+
+        ul = z
+        UR = []
+        DL = []
+        DR = []
+        for no in range(depth):
+            _x = im2grp(ul)
+            ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+            ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+            dl = _x[:, :, :, 2].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+            dr = _x[:, :, :, 3].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+            UR.append(ur)
+            DL.append(dl)
+            DR.append(dr)
+
+        for no in reversed(range(depth)):
+            ur = UR[no]
+            dl = DL[no]
+            dr = DR[no]
+
+            for _ in range(2):
+                ul = ul.permute([0, 3, 1, 2]).reshape(z.shape[0] * z.shape[3], z.shape[1], z.shape[2]).contiguous()
+                _x = ul.reshape(*ul.shape[:-1], ul.shape[-1] // 2, 2)
+                upper = _x[:, :, :, 0].contiguous()
+                down = _x[:, :, :, 1].contiguous()
+
+                for i in reversed(range(2 * depth)):
                     if i % 2 == 0:
-                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(up)) * self.decimal.scaling)
-                        dn = dn + tmp
+                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(upper)) * self.decimal.scaling)
+                        down = down + tmp
                     else:
-                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(dn)) * self.decimal.scaling)
-                        up = up - tmp
+                        tmp = self.rounding(self.layerList[no * self.repeat * 2 + i](self.decimal.inverse_(down)) * self.decimal.scaling)
+                        upper = upper - tmp
+                upper = upper.reshape(*upper.shape, 1)
+                down = down.reshape(*down.shape, 1)
+                ul = torch.cat([upper, down], -1).reshape(*ul.shape[:-2], ul.shape[-2] * 2)
 
-                dn = dn.reshape(*up.shape, 1)
-                up = up.reshape(*up.shape, 1)
-
-                _x = torch.cat([up, dn], -1).reshape(*up.shape[:-2], up.shape[-2] * 2)
-                up = _x.contiguous()
-
-            z = up.reshape(up.shape[0] // z.shape[-2], z.shape[-2], up.shape[1], z.shape[-2]).permute([0, 2, 1, 3]).contiguous()
+            import pdb
+            pdb.set_trace()
         return z, z.new_zeros(z.shape[0])
 
     def logProbability(self, x, K=None):

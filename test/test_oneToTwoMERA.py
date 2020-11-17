@@ -11,44 +11,136 @@ import utils
 import flow
 import source
 import utils
+from PIL import Image
 from utils import harrInitMethod1, harrInitMethod2, buildWaveletLayers
 from numpy.testing import assert_allclose
+from matplotlib import pyplot as plt
 
 #torch.manual_seed(42)
 
 def test_wavelet():
 
+    def back01(tensor):
+        ten = tensor.clone().float()
+        ten = ten.view(ten.shape[0] * ten.shape[1], -1)
+        ten -= ten.min(1, keepdim=True)[0]
+        ten /= ten.max(1, keepdim=True)[0]
+        ten = ten.view(tensor.shape)
+        return ten
+
+
+    # yet another renorm fn
+    def batchNorm(tensor, base=1.0):
+        m = nn.BatchNorm2d(tensor.shape[1], affine=False)
+        return m(tensor).float() + base
+
+
+    renormFn = lambda x: back01(batchNorm(x))
+
+
+    def im2grp(t):
+        return t.reshape(t.shape[0], t.shape[1], t.shape[2] // 2, 2, t.shape[3] // 2, 2).permute([0, 1, 2, 4, 3, 5]).reshape(t.shape[0], t.shape[1], -1, 4)
+
+
+    def grp2im(t):
+        return t.reshape(t.shape[0], t.shape[1], int(t.shape[2] ** 0.5), int(t.shape[2] ** 0.5), 2, 2).permute([0, 1, 2, 4, 3, 5]).reshape(t.shape[0], t.shape[1], int(t.shape[2] ** 0.5) * 2, int(t.shape[2] ** 0.5) * 2)
+
+
     decimal = flow.ScalingNshifting(256, 0)
 
     psudoRounding = torch.nn.Identity()
 
-    v = torch.randint(255, [100, 3, 8, 8]).float()
+    IMG = Image.open('./etc/lena512color.tiff')
+    IMG = torch.from_numpy(np.array(IMG)).permute([2, 0, 1])
+    IMG = IMG.reshape(1, *IMG.shape).float()
+
+    v = IMG
 
     def buildTransMatrix(n):
         core = torch.tensor([[0.5, 0.5], [-1, 1]])
         gap = torch.zeros(2, n)
         return torch.cat([core if i % 2 == 0 else gap for i in range(n - 1)], -1).reshape(2, n // 2, n).permute([1, 0, 2]).reshape(n, n)
 
-    depth = int(math.log(8, 2))
+    depth = int(math.log(v.shape[-1], 2))
     up = v
-    for _ in range(2):
-        blockSize = 8
-        DN = []
-        for i in range(depth):
-            transMatrix = buildTransMatrix(blockSize)
-            up = torch.matmul(up, transMatrix.t())
-            blockSize //= 2
-            up = up.reshape(*up.shape[:-2], up.shape[-2], blockSize, 2).transpose(-1, -2)
-            DN.append(up[:, :, :, 1, :])
-            up = up[:, :, :, 0, :]
-        for i in reversed(range(depth)):
-            up = up.reshape(up.shape[0], up.shape[1], up.shape[2], 1, up.shape[3])
-            dn = DN[i].reshape(*up.shape)
-            blockSize *= 2
-            up = torch.cat([up, dn], -2).transpose(-1, -2).reshape(up.shape[0], up.shape[1], up.shape[2], blockSize)
-        up = up.transpose(-1, -2)
 
-    transV = up
+    blockSize = v.shape[-1]
+
+    UR = []
+    DL = []
+    DR = []
+
+    for i in range(depth):
+        transMatrix = buildTransMatrix(blockSize)
+        for _ in range(2):
+            up = torch.matmul(up, transMatrix.t())
+            up = up.permute([0, 1, 3, 2])
+        blockSize //= 2
+
+        _x = im2grp(up)
+        ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        dl = _x[:, :, :, 2].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        dr = _x[:, :, :, 3].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+
+        UR.append(ur)
+        DL.append(dl)
+        DR.append(dr)
+
+        up = ul
+
+    ul = up
+
+    for no in reversed(range(depth)):
+        ur = UR[no].reshape(*ul.shape, 1)
+        dl = DL[no].reshape(*ul.shape, 1)
+        dr = DR[no].reshape(*ul.shape, 1)
+        ul = ul.reshape(*ul.shape, 1)
+
+        _x = torch.cat([ul, ur, dl, dr], -1).reshape(*ul.shape[:2], -1, 4)
+        ul = grp2im(_x).contiguous()
+
+    transV = ul
+
+    '''
+    ul = ul
+    UR = []
+    DL = []
+    DR = []
+    for _ in range(depth):
+        _x = im2grp(ul)
+        ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        dl = _x[:, :, :, 2].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        dr = _x[:, :, :, 3].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        UR.append(renormFn(ur))
+        DL.append(renormFn(dl))
+        DR.append(renormFn(dr))
+
+    #ul = back01(backMeanStd(batchNorm(ul, 0)))
+    ul = renormFn(ul)
+    #ul = back01(clip(backMeanStd(batchNorm(ul))))
+
+    for no in reversed(range(depth)):
+
+        ur = UR[no]
+        dl = DL[no]
+        dr = DR[no]
+
+        upper = torch.cat([ul, ur], -1)
+        down = torch.cat([dl, dr], -1)
+        ul = torch.cat([upper, down], -2)
+
+    # convert zremaoin to numpy array
+    zremain = ul.permute([0, 2, 3, 1]).detach().cpu().numpy()
+
+    waveletPlot = plt.figure(figsize=(8, 8))
+    waveletAx = waveletPlot.add_subplot(111)
+    waveletAx.imshow(zremain[0])
+    plt.axis('off')
+    plt.savefig('./testWavelet.pdf', bbox_inches="tight", pad_inches=0)
+    plt.close()
+    '''
 
     initMethods = []
     initMethods.append(lambda: harrInitMethod1(3))
@@ -103,42 +195,99 @@ def test_wavelet():
     torch.nn.init.zeros_(scaleNNlist[-1][-1].weight)
     torch.nn.init.zeros_(scaleNNlist[-1][-1].bias)
 
-    f = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, None, 5, decimal=decimal, rounding=psudoRounding.forward)
+    f = flow.OneToTwoMERA(v.shape[-1], layerList, meanNNlist, scaleNNlist, repeat=2, depth=depth, nMixing=5, decimal=decimal, rounding=psudoRounding.forward)
 
     vpp = f.inverse(v)[0]
 
     assert_allclose(vpp.detach().numpy(), transV.detach().numpy())
 
+    '''
+    vpp = ul
+    UR = []
+    DL = []
+    DR = []
+    for _ in range(depth):
+        _x = im2grp(ul)
+        ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        dl = _x[:, :, :, 2].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        dr = _x[:, :, :, 3].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        UR.append(renormFn(ur))
+        DL.append(renormFn(dl))
+        DR.append(renormFn(dr))
+
+    #ul = back01(backMeanStd(batchNorm(ul, 0)))
+    ul = renormFn(ul)
+    #ul = back01(clip(backMeanStd(batchNorm(ul))))
+
+    for no in reversed(range(depth)):
+
+        ur = UR[no]
+        dl = DL[no]
+        dr = DR[no]
+
+        upper = torch.cat([ul, ur], -1)
+        down = torch.cat([dl, dr], -1)
+        ul = torch.cat([upper, down], -2)
+
+    # convert zremaoin to numpy array
+    zremain = ul.permute([0, 2, 3, 1]).detach().cpu().numpy()
+
+    waveletPlot = plt.figure(figsize=(8, 8))
+    waveletAx = waveletPlot.add_subplot(111)
+    waveletAx.imshow(zremain[0])
+    plt.axis('off')
+    plt.savefig('./testWavelet2.pdf', bbox_inches="tight", pad_inches=0)
+    plt.close()
+    '''
     # Test depth
-    vp = torch.randint(255, [100, 3, 8, 8]).float()
+    vp = IMG
 
     depth = 2
     up = vp
-    for _ in range(2):
-        blockSize = 8
-        DN = []
-        for i in range(depth):
-            transMatrix = buildTransMatrix(blockSize)
-            up = torch.matmul(up, transMatrix.t())
-            blockSize //= 2
-            up = up.reshape(*up.shape[:-2], up.shape[-2], blockSize, 2).transpose(-1, -2)
-            DN.append(up[:, :, :, 1, :])
-            up = up[:, :, :, 0, :]
-        for i in reversed(range(depth)):
-            up = up.reshape(up.shape[0], up.shape[1], up.shape[2], 1, up.shape[3])
-            dn = DN[i].reshape(*up.shape)
-            blockSize *= 2
-            up = torch.cat([up, dn], -2).transpose(-1, -2).reshape(up.shape[0], up.shape[1], up.shape[2], blockSize)
-        up = up.transpose(-1, -2)
+    blockSize = v.shape[-1]
 
-    transVp = up
+    UR = []
+    DL = []
+    DR = []
+
+    for i in range(depth):
+        transMatrix = buildTransMatrix(blockSize)
+        for _ in range(2):
+            up = torch.matmul(up, transMatrix.t())
+            up = up.permute([0, 1, 3, 2])
+        blockSize //= 2
+
+        _x = im2grp(up)
+        ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        dl = _x[:, :, :, 2].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+        dr = _x[:, :, :, 3].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+
+        UR.append(ur)
+        DL.append(dl)
+        DR.append(dr)
+
+        up = ul
+
+    ul = up
+
+    for no in reversed(range(depth)):
+        ur = UR[no].reshape(*ul.shape, 1)
+        dl = DL[no].reshape(*ul.shape, 1)
+        dr = DR[no].reshape(*ul.shape, 1)
+        ul = ul.reshape(*ul.shape, 1)
+
+        _x = torch.cat([ul, ur, dl, dr], -1).reshape(*ul.shape[:2], -1, 4)
+        ul = grp2im(_x).contiguous()
+
+    transVp = ul
 
     fp = flow.OneToTwoMERA(8, layerList, meanNNlist, scaleNNlist, 2, depth, 5, decimal=decimal, rounding=psudoRounding.forward)
 
     vpp = fp.inverse(vp)[0]
 
     assert_allclose(vpp.detach().numpy(), transVp.detach().numpy())
-
 
 def test_bijective():
 
@@ -188,6 +337,7 @@ def test_bijective():
     samples = torch.randint(0, 255, (100, 3, 8, 8)).float()
 
     zSamples, _ = t.inverse(samples)
+
     rcnSamples, _ = t.forward(zSamples)
     prob = t.logProbability(samples)
 
@@ -283,5 +433,5 @@ def test_saveload():
 
 if __name__ == "__main__":
     test_wavelet()
-    #test_bijective()
+    test_bijective()
     #test_saveload()
