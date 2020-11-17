@@ -45,7 +45,7 @@ def test_bijective():
 
     zSamples, _ = t.inverse(samples)
     rcnSamples, _ = t.forward(zSamples)
-    prob = t.logProbability(samples)
+    #prob = t.logProbability(samples)
 
     assert_allclose(samples.detach().numpy(), rcnSamples.detach().numpy())
 
