@@ -138,6 +138,7 @@ class SimpleHierarchyPrior(Source):
 
         priorList = []
 
+        '''
         _length = int(length * length / 4)
         for n in range(self.depth):
             if n != self.depth - 1:
@@ -145,6 +146,13 @@ class SimpleHierarchyPrior(Source):
             else:
                 priorList.append(MixtureDiscreteLogistic([3, _length, 4], nMixing, decimal, rounding))
             _length = int(_length / 4)
+        '''
+        detailPrior = DiscreteLogistic([3, 1, 3], decimal, rounding)
+        for no in range(self.depth):
+            if no == self.depth - 1:
+                priorList.append(MixtureDiscreteLogistic([3, 1, 4], nMixing, decimal, rounding))
+            else:
+                priorList.append(detailPrior)
 
         self.priorList = torch.nn.ModuleList(priorList)
 
