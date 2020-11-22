@@ -143,7 +143,7 @@ def buildLayers(shapeList):
         if no != 0 and no != len(shapeList) - 2:
             layers.append(torch.nn.Conv2d(chn, shapeList[no + 1], 1))
         else:
-            layers.append(torch.nn.Conv2d(chn, shapeList[no + 1], 3, padding=1))
+            layers.append(torch.nn.Conv2d(chn, shapeList[no + 1], 3, padding=1, padding_mode="replicate"))
         if no != len(shapeList) - 2:
             layers.append(torch.nn.ReLU(inplace=True))
     return layers
@@ -178,6 +178,7 @@ else:
 
 # Building MERA model
 f = flow.SimpleMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+
 
 '''
 from utils import getIndeices
