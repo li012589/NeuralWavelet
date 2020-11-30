@@ -126,9 +126,16 @@ else:
     raise Exception("model not define")
 
 if 'simplePrior_True' in name:
-    raise Exception('Not implemented')
     meanNNList = None
     scaleNNlist = None
+    length = targetSize[-1]
+    lenList = []
+    _length = int(length * length / 4)
+    for n in range(depth):
+        if n != depth - 1:
+            lenList.append([batch, 3, _length, 3])
+        _length = int(_length / 4)
+
 elif 'simplePrior_False' in name:
     meanNNList = [loadedF.meanNNlist[0]]
     scaleNNlist = [loadedF.scaleNNlist[0]]
@@ -156,6 +163,7 @@ elif '1to2Mera' in name:
 else:
     raise Exception("model not define")
 
+
 def im2grp(t):
     return t.reshape(t.shape[0], t.shape[1], t.shape[2] // 2, 2, t.shape[3] // 2, 2).permute([0, 1, 2, 4, 3, 5]).reshape(t.shape[0], t.shape[1], -1, 4)
 
@@ -172,7 +180,7 @@ def divide(z):
         ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
         zpart = _x[:, :, :, 1:].contiguous()
         parts.append(zpart.detach())
-    parts.append(ul)
+    parts.append(ul.detach())
     return parts
 
 
@@ -198,19 +206,43 @@ def plotLoading(loader):
 
     zParts = divide(z)
 
-    outerMean = reform(f.meanNNlist[0](decimal.inverse_(samples))).contiguous()
-    outerScale = reform(f.scaleNNlist[0](decimal.inverse_(samples))).contiguous()
-
     augmenZ = []
+    TMP = []
     for no in range(int(math.log(blockLength, 2))):
         tmpZ = []
         for i in range(no):
             #tmpZ.append(f.prior.priorList[i].sample(batch))
-            sampledDetails = utils.sampleDiscreteLogistic([*f.meanList[i].shape], f.meanList[i], f.scaleList[i] + args.baseScale, decimal=f.decimal)
+            if 'simplePrior_False' in name:
+                sampledDetails = utils.sampleDiscreteLogistic([*f.meanList[i].shape], f.meanList[i], f.scaleList[i] + args.baseScale, decimal=f.decimal)
+            else:
+                sampledDetails = utils.sampleDiscreteLogistic(lenList[i], loadedF.prior.priorList[i].mean, loadedF.prior.priorList[i].logscale + args.baseScale, decimal=f.decimal)
             #sampledDetails = torch.zeros_like(sampledDetails)
             tmpZ.append(sampledDetails)
         tmpZ = tmpZ + zParts[no:]
+        TMP.append(tmpZ)
         augmenZ.append(join(tmpZ))
+
+    '''
+    i = 0
+    for term in TMP:
+        j = 0
+        print(i, "th term")
+        i += 1
+        for part in term:
+            print(j, "th part")
+            j += 1
+            print("")
+            print(part[:, 0].mean())
+            print(part[:, 1].mean())
+            print(part[:, 2].mean())
+            print("")
+
+    print(torch.cat([TMP[0][-1], TMP[0][-2]],-1)[:,0].mean())
+    print(torch.cat([TMP[0][-1], TMP[0][-2]],-1)[:,1].mean())
+    print(torch.cat([TMP[0][-1], TMP[0][-2]],-1)[:,2].mean())
+    import pdb
+    pdb.set_trace()
+    '''
 
     rcnZ = torch.cat(augmenZ, 0)
 
