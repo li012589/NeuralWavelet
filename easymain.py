@@ -39,7 +39,7 @@ device = torch.device("cpu" if args.cuda < 0 else "cuda:" + str(args.cuda))
 
 # Creating save folder
 if args.folder is None:
-    rootFolder = './opt/default_easyMera_' + args.target + "_simplePrior_" + str(args.simplePrior) + "_repeat_" + str(args.repeat) + "_hchnl_" + str(args.hchnl) + "_nhidden_" + str(args.nhidden) + "_nMixing_" + str(args.nMixing) + "/"
+    rootFolder = './opt/default_easyMera_' + args.target + "_simplePrior_" + str(args.simplePrior) + "_repeat_" + str(args.repeat) + "_hchnl_" + str(args.hchnl) + "_nhidden_" + str(args.nhidden) + "_nMixing_" + str(args.nMixing) + "_sameDetail_" + str(args.sameDetail) + "_clamp_" + str(args.clamp) + "/"
     print("No specified saving path, using", rootFolder)
 else:
     rootFolder = args.folder
@@ -185,9 +185,6 @@ else:
 
 # Building MERA model
 f = flow.SimpleMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient, clamp=clamp, sameDetail=sameDetail).to(device)
-
-import pdb
-pdb.set_trace()
 
 '''
 from utils import getIndeices
