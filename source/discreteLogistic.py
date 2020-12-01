@@ -31,8 +31,10 @@ class DiscreteLogistic(Source):
 
 
 class MixtureDiscreteLogistic(Source):
-    def __init__(self, nvars, nMixing, decimal, rounding, K=1.0, mean=None, logscale=None, train=True, name="mixtureDiscreteLogistic"):
+    def __init__(self, nvars, nMixing, decimal, rounding, K=1.0, mean=None, logscale=None, train=True, clamp=None, name="mixtureDiscreteLogistic"):
         super(MixtureDiscreteLogistic, self).__init__(nvars, K, name)
+        self.clamp = clamp
+        assert self.clamp is None or self.clamp > 0
         self.nMixing = nMixing
         self.mixing = nn.Parameter(torch.softmax(torch.zeros(nvars + [nMixing]), dim=-1), requires_grad=train)
 
@@ -50,9 +52,15 @@ class MixtureDiscreteLogistic(Source):
         self.rounding = rounding
 
     def sample(self, batchSize, K=None):
-        return sampleMixDiscreteLogistic([batchSize] + self.nvars, self.mean, self.logscale, self.mixing, rounding=self.rounding, decimal=self.decimal)
+        if self.clamp is None:
+            return sampleMixDiscreteLogistic([batchSize] + self.nvars, self.mean, self.logscale, self.mixing, rounding=self.rounding, decimal=self.decimal)
+        else:
+            return sampleMixDiscreteLogistic([batchSize] + self.nvars, torch.clamp(self.mean, -self.clamp, self.clamp), self.logscale, self.mixing, rounding=self.rounding, decimal=self.decimal)
 
     def _energy(self, z):
-        return -logMixDiscreteLogistic(z, self.mean, self.logscale, self.mixing, decimal=self.decimal).reshape(z.shape[0], -1).sum(-1)
+        if self.clamp is None:
+            return -logMixDiscreteLogistic(z, self.mean, self.logscale, self.mixing, decimal=self.decimal).reshape(z.shape[0], -1).sum(-1)
+        else:
+            return -logMixDiscreteLogistic(z, torch.clamp(self.mean, -self.clamp, self.clamp), self.logscale, self.mixing, decimal=self.decimal).reshape(z.shape[0], -1).sum(-1)
 
 

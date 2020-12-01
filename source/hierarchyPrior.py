@@ -132,27 +132,27 @@ class PassiveHierarchyPrior(Source):
 
 
 class SimpleHierarchyPrior(Source):
-    def __init__(self, length, nMixing, decimal=None, rounding=None, K=1.0, name="SimpleHierarchyPiror"):
+    def __init__(self, length, nMixing, decimal=None, rounding=None, clamp=None, sameDetail=True, K=1.0, name="SimpleHierarchyPiror"):
         super(SimpleHierarchyPrior, self).__init__([3, length, length], K, name)
         self.depth = int(math.log(length, 2))
 
         priorList = []
 
-        '''
-        _length = int(length * length / 4)
-        for n in range(self.depth):
-            if n != self.depth - 1:
-                priorList.append(DiscreteLogistic([3, _length, 3], decimal, rounding))
-            else:
-                priorList.append(MixtureDiscreteLogistic([3, _length, 4], nMixing, decimal, rounding))
-            _length = int(_length / 4)
-        '''
-        detailPrior = DiscreteLogistic([3, 1, 3], decimal, rounding)
-        for no in range(self.depth):
-            if no == self.depth - 1:
-                priorList.append(MixtureDiscreteLogistic([3, 1, 4], nMixing, decimal, rounding))
-            else:
-                priorList.append(detailPrior)
+        if sameDetail:
+            detailPrior = DiscreteLogistic([3, 1, 3], decimal, rounding)
+            for no in range(self.depth):
+                if no == self.depth - 1:
+                    priorList.append(MixtureDiscreteLogistic([3, 1, 4], nMixing, decimal, rounding, clamp=clamp))
+                else:
+                    priorList.append(detailPrior)
+        else:
+            _length = int(length * length / 4)
+            for n in range(self.depth):
+                if n != self.depth - 1:
+                    priorList.append(DiscreteLogistic([3, _length, 3], decimal, rounding))
+                else:
+                    priorList.append(MixtureDiscreteLogistic([3, _length, 4], nMixing, decimal, rounding, clamp=clamp))
+                _length = int(_length / 4)
 
         self.priorList = torch.nn.ModuleList(priorList)
 
