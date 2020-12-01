@@ -18,13 +18,15 @@ group.add_argument("-repeat", type=int, default=1, help="num of disentangler lay
 group.add_argument("-hchnl", type=int, default=12, help="intermediate channel dimension of Conv2d inside NICE inside MERA")
 group.add_argument("-nhidden", type=int, default=1, help="num of intermediate channel of Conv2d inside NICE inside MERA")
 group.add_argument("-nMixing", type=int, default=5, help="num of mixing distributions of last sub-priors")
+group.add_argument("-simplePrior", action="store_true", help="if use simple version prior, no crossover")
+group.add_argument("-sameDetail", action="store_false", help="if use same detail prior")
+group.add_argument("-clamp", type=float, default=-1, help="clamp of last prior's mean")
 
 group = parser.add_argument_group('Learning  parameters')
 group.add_argument("-epoch", type=int, default=400, help="num of epoches to train")
 group.add_argument("-batch", type=int, default=200, help="batch size")
 group.add_argument("-savePeriod", type=int, default=10, help="save after how many steps")
 group.add_argument("-lr", type=float, default=0.001, help="learning rate")
-group.add_argument("-simplePrior", action="store_true", help="if use simple version prior, no crossover")
 
 group = parser.add_argument_group("Etc")
 group.add_argument("-folder", default=None, help="Path to save")
@@ -45,6 +47,9 @@ if rootFolder[-1] != '/':
     rootFolder += '/'
 utils.createWorkSpace(rootFolder)
 
+if args.clamp < 0:
+    args.clamp = None
+
 # Decoding parameters to mem, saving them to save folder.
 if not args.load:
     target = args.target
@@ -56,9 +61,11 @@ if not args.load:
     batch = args.batch
     savePeriod = args.savePeriod
     simplePrior = args.simplePrior
+    sameDetail = args.sameDetail
+    clamp = args.clamp
     lr = args.lr
     with open(rootFolder + "/parameter.json", "w") as f:
-        config = {'target': target, 'repeat': repeat, 'hchnl': hchnl, 'nhidden': nhidden, 'nMixing': nMixing, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr, 'simplePrior': simplePrior}
+        config = {'target': target, 'repeat': repeat, 'hchnl': hchnl, 'nhidden': nhidden, 'nMixing': nMixing, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr, 'simplePrior': simplePrior, 'sameDetail': sameDetail, 'clamp': clamp}
         json.dump(config, f)
 else:
     # load saved parameters, and decoding them to mem
@@ -177,8 +184,10 @@ else:
     scaleNNlist = None
 
 # Building MERA model
-f = flow.SimpleMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+f = flow.SimpleMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient, clamp=clamp, sameDetail=sameDetail).to(device)
 
+import pdb
+pdb.set_trace()
 
 '''
 from utils import getIndeices

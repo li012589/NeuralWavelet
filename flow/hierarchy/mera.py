@@ -250,13 +250,13 @@ def reform(tensor):
 
 
 class SimpleMERA(Flow):
-    def __init__(self, length, layerList, meanNNlist=None, scaleNNlist=None, repeat=1, depth=None, nMixing=5, decimal=None, rounding=None, clamp=None, name="SimpleMERA"):
+    def __init__(self, length, layerList, meanNNlist=None, scaleNNlist=None, repeat=1, depth=None, nMixing=5, decimal=None, rounding=None, clamp=None, sameDetail=True, name="SimpleMERA"):
         kernelSize = 2
         if depth is None or depth == -1:
             depth = int(math.log(length, kernelSize))
 
         if meanNNlist is None or scaleNNlist is None:
-            prior = source.SimpleHierarchyPrior(length, nMixing, decimal, rounding, clamp=clamp)
+            prior = source.SimpleHierarchyPrior(length, nMixing, decimal, rounding, clamp=clamp, sameDetail=sameDetail)
         else:
             lastPrior = source.MixtureDiscreteLogistic([3, 1, 4], nMixing, decimal, rounding, clamp=clamp)
             prior = source.PassiveHierarchyPrior(length, lastPrior, decimal=decimal, rounding=rounding)
