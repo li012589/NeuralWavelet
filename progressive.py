@@ -158,8 +158,12 @@ rounding = utils.roundingWidentityGradient
 # Building MERA mode
 if 'easyMera' in name:
     f = flow.SimpleMERA(blockLength, layerList, meanNNList, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+    flist = []
+    for i in range(depth):
+        flist.append(flow.SimpleMERA(blockLength, layerList, meanNNList, scaleNNlist, repeat, depth + i + 1, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device))
 elif '1to2Mera' in name:
     f = flow.OneToTwoMERA(blockLength, layerList, meanNNList, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+    fex = flow.OneToTwoMERA(blockLength, layerList, meanNNList, scaleNNlist, repeat, 2 * depth, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
 else:
     raise Exception("model not define")
 
@@ -200,6 +204,16 @@ def reform(tensor):
     return tensor.reshape(tensor.shape[0], tensor.shape[1] // 3, 3, tensor.shape[2], tensor.shape[3]).permute([0, 1, 3, 4, 2]).contiguous().reshape(tensor.shape[0], tensor.shape[1] // 3, tensor.shape[2] * tensor.shape[3], 3)
 
 
+def sampleMoreDetails(samples):
+    if 'simplePrior_False' in name:
+        mean = reform(f.meanNNlist(f.decimal.inverse_(samples))).contiguous()
+        scale = reform(f.scaleNNlist(f.decimal.inverse_(samples))).contiguous()
+        sampledDetails = utils.sampleDiscreteLogistic([*mean.shape], mean, scale + args.baseScale, decimal=f.decimal)
+    else:
+        sampledDetails = utils.sampleDiscreteLogistic([batch, np.prod(samples.shape[-2:]), 3], loadedF.prior.priorList[0].mean, loadedF.prior.priorList[0].logscale + args.baseScale, decimal=f.decimal)
+    return sampledDetails
+
+
 def plotLoading(loader):
     samples, _ = next(iter(loader))
     z, _ = f.inverse(samples)
@@ -207,7 +221,6 @@ def plotLoading(loader):
     zParts = divide(z)
 
     augmenZ = []
-    TMP = []
     for no in range(int(math.log(blockLength, 2))):
         tmpZ = []
         for i in range(no):
@@ -219,30 +232,16 @@ def plotLoading(loader):
             #sampledDetails = torch.zeros_like(sampledDetails)
             tmpZ.append(sampledDetails)
         tmpZ = tmpZ + zParts[no:]
-        TMP.append(tmpZ)
         augmenZ.append(join(tmpZ))
 
-    '''
-    i = 0
-    for term in TMP:
-        j = 0
-        print(i, "th term")
-        i += 1
-        for part in term:
-            print(j, "th part")
-            j += 1
-            print("")
-            print(part[:, 0].mean())
-            print(part[:, 1].mean())
-            print(part[:, 2].mean())
-            print("")
-
-    print(torch.cat([TMP[0][-1], TMP[0][-2]],-1)[:,0].mean())
-    print(torch.cat([TMP[0][-1], TMP[0][-2]],-1)[:,1].mean())
-    print(torch.cat([TMP[0][-1], TMP[0][-2]],-1)[:,2].mean())
-    import pdb
-    pdb.set_trace()
-    '''
+    expSamples = samples
+    plotList = []
+    for i in range(depth):
+        moreDetails = sampleMoreDetails(expSamples)
+        expZ = zParts + [moreDetails]
+        expZ = join(expZ)
+        expSamples = flist[i].forward(expZ)
+        plotList.append(expSamples)
 
     rcnZ = torch.cat(augmenZ, 0)
 
@@ -268,6 +267,15 @@ def plotLoading(loader):
             ax.imshow(clip(rcnSamples[j][i]).permute([1, 2, 0]).detach().numpy())
             plt.axis('off')
             plt.savefig(rootFolder + 'pic/proloadPlot_N_' + str(i) + '_P_' + str(j) + '.png', bbox_inches="tight", pad_inches=0)
+            plt.close()
+
+    for i in range(batch):
+        for j, term in enumerate(plotList):
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.imshow(clip(term[j]).permute([1, 2, 0]).detach().numpy())
+            plt.axis('off')
+            plt.savefig(rootFolder + 'pic/exoloadPlot_N_' + str(i) + '_P_' + str(j) + '.png', bbox_inches="tight", pad_inches=0)
             plt.close()
 
 
