@@ -267,13 +267,19 @@ class SimpleMERA(Flow):
         self.repeat = repeat
         self.depth = depth
 
-        layerList = layerList * depth
+        if len(layerList) != 4 * repeat * depth:
+            layerList = layerList * depth
+
+        assert len(layerList) == 4 * repeat * depth
 
         self.layerList = torch.nn.ModuleList(layerList)
 
         if meanNNlist is not None and scaleNNlist is not None:
-            meanNNlist = meanNNlist * depth
-            scaleNNlist = scaleNNlist * depth
+            if len(meanNNlist) != depth:
+                meanNNlist = meanNNlist * depth
+                scaleNNlist = scaleNNlist * depth
+
+            assert len(meanNNlist) == depth
 
             self.meanNNlist = torch.nn.ModuleList(meanNNlist)
             self.scaleNNlist = torch.nn.ModuleList(scaleNNlist)
