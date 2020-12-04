@@ -280,6 +280,7 @@ class SimpleMERA(Flow):
                 scaleNNlist = scaleNNlist * depth
 
             assert len(meanNNlist) == depth
+            assert len(scaleNNlist) == depth
 
             self.meanNNlist = torch.nn.ModuleList(meanNNlist)
             self.scaleNNlist = torch.nn.ModuleList(scaleNNlist)
