@@ -206,11 +206,11 @@ def reform(tensor):
 
 def sampleMoreDetails(samples):
     if 'simplePrior_False' in name:
-        mean = reform(f.meanNNlist(f.decimal.inverse_(samples))).contiguous()
-        scale = reform(f.scaleNNlist(f.decimal.inverse_(samples))).contiguous()
+        mean = reform(f.meanNNlist[0](f.decimal.inverse_(samples))).contiguous()
+        scale = reform(f.scaleNNlist[0](f.decimal.inverse_(samples))).contiguous()
         sampledDetails = utils.sampleDiscreteLogistic([*mean.shape], mean, scale + args.baseScale, decimal=f.decimal)
     else:
-        sampledDetails = utils.sampleDiscreteLogistic([batch, np.prod(samples.shape[-2:]), 3], loadedF.prior.priorList[0].mean, loadedF.prior.priorList[0].logscale + args.baseScale, decimal=f.decimal)
+        sampledDetails = utils.sampleDiscreteLogistic([batch, 3, np.prod(samples.shape[-2:]), 3], loadedF.prior.priorList[0].mean, loadedF.prior.priorList[0].logscale + args.baseScale, decimal=f.decimal)
     return sampledDetails
 
 
@@ -236,11 +236,12 @@ def plotLoading(loader):
 
     expSamples = samples
     plotList = []
+    expZparts = zParts
     for i in range(depth):
         moreDetails = sampleMoreDetails(expSamples)
-        expZ = zParts + [moreDetails]
-        expZ = join(expZ)
-        expSamples = flist[i].forward(expZ)
+        expZparts = [moreDetails] + expZparts
+        expZ = join(expZparts)
+        expSamples, _ = flist[i].forward(expZ)
         plotList.append(expSamples)
 
     rcnZ = torch.cat(augmenZ, 0)
