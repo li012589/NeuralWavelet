@@ -203,9 +203,6 @@ else:
 # Building MERA model
 f = flow.SimpleMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient, clamp=clamp, sameDetail=diffDetail).to(device)
 
-import pdb
-pdb.set_trace()
-
 # Define plot function
 def plotfn(f, train, test, LOSS, VALLOSS):
     # loss plot
