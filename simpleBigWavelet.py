@@ -89,7 +89,7 @@ rounding = utils.roundingWidentityGradient
 if 'easyMera' in name:
     f = flow.SimpleMERA(blockLength, layerList, None, None, repeat, args.depth + 1, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
 elif '1to2Mera' in name:
-    f = flow.OneToTwoMERA(blockLength, layerList, None, None, repeat, args.depth + 1, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+    f = flow.OneToTwoMERA(blockLength, layerList, None, None, repeat, args.depth, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
 else:
     raise Exception("model not define")
 
