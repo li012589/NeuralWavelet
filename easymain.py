@@ -84,7 +84,7 @@ if target == "CIFAR":
     blockLength = targetSize[-1]
 
     # Define nomaliziation and decimal
-    decimal = flow.ScalingNshifting(256, -128)
+    decimal = flow.ScalingNshifting(256, 0)
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
@@ -102,7 +102,7 @@ elif target == "ImageNet32":
     blockLength = targetSize[-1]
 
     # Define nomaliziation and decimal
-    decimal = flow.ScalingNshifting(256, -128)
+    decimal = flow.ScalingNshifting(256, 0)
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
@@ -121,7 +121,7 @@ elif target == "ImageNet64":
     blockLength = targetSize[-1]
 
     # Define nomaliziation and decimal
-    decimal = flow.ScalingNshifting(256, -128)
+    decimal = flow.ScalingNshifting(256, 0)
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
