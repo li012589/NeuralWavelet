@@ -1,9 +1,11 @@
-import torch
+import torch, torchvision
 import numpy as np
 
 from utils import buildWaveletLayers, harrInitMethod1, harrInitMethod2, leGallInitMethod1, leGallInitMethod2
 import utils
 import flow
+import os, glob
+import argparse, json, math
 
 from PIL import Image
 
@@ -11,33 +13,140 @@ from matplotlib import pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
+parser = argparse.ArgumentParser(description="")
 
-nhidden = 1
-depth = 1
-hchnl = 6
+parser.add_argument("-folder", default=None, help="Path to load the trained model")
+parser.add_argument("-depth", type=int, default=1, help="wavelet depth")
+parser.add_argument("-best", action='store_false', help="if load the best model")
+parser.add_argument("-img", default='./etc/lena512color.tiff', help="the img path")
 
-IMG = Image.open('./etc/lena512color.tiff')
-IMG = torch.from_numpy(np.array(IMG)).permute([2, 0, 1])
-IMG = IMG.reshape(1, *IMG.shape).float()
+args = parser.parse_args()
 
-decimal = flow.ScalingNshifting(256, 0)
+device = torch.device("cpu")
+
+if args.folder is None:
+    raise Exception("No loading")
+else:
+    rootFolder = args.folder
+    if rootFolder[-1] != '/':
+        rootFolder += '/'
+    with open(rootFolder + "parameter.json", 'r') as f:
+        config = json.load(f)
+        locals().update(config)
+
+        target = config['target']
+        repeat = config['repeat']
+        nhidden = config['nhidden']
+        hchnl = config['hchnl']
+        nMixing = config['nMixing']
+        simplePrior = config['simplePrior']
+        batch = config['batch']
+
+# decide which model to load
+if args.best:
+    name = max(glob.iglob(os.path.join(rootFolder, '*.saving')), key=os.path.getctime)
+else:
+    name = max(glob.iglob(os.path.join(rootFolder, 'savings', '*.saving')), key=os.path.getctime)
+
+if args.img != 'target':
+    IMG = Image.open(args.img)
+    IMG = torch.from_numpy(np.array(IMG)).permute([2, 0, 1])
+    IMG = IMG.reshape(1, *IMG.shape).float()
+else:
+    if target == "CIFAR":
+        # Define dimensions
+        targetSize = [3, 32, 32]
+        dimensional = 2
+        channel = targetSize[0]
+        blockLength = targetSize[-1]
+
+        # Define nomaliziation and decimal
+        decimal = flow.ScalingNshifting(256, -128)
+        rounding = utils.roundingWidentityGradient
+
+        # Building train & test datasets
+        lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
+        trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
+        trainTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=True, download=True, transform=trainsetTransform)
+        testTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=False, download=True, transform=trainsetTransform)
+        targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=True)
+        targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=True)
+    elif target == "ImageNet32":
+        # Define dimensions
+        targetSize = [3, 32, 32]
+        dimensional = 2
+        channel = targetSize[0]
+        blockLength = targetSize[-1]
+
+        # Define nomaliziation and decimal
+        decimal = flow.ScalingNshifting(256, -128)
+        rounding = utils.roundingWidentityGradient
+
+        # Building train & test datasets
+        lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
+        trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
+        trainTarget = utils.ImageNet(root='./data/ImageNet32', train=True, download=True, transform=trainsetTransform)
+        testTarget = utils.ImageNet(root='./data/ImageNet32', train=False, download=True, transform=trainsetTransform)
+        targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=True)
+        targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=True)
+
+    elif target == "ImageNet64":
+        # Define dimensions
+        targetSize = [3, 64, 64]
+        dimensional = 2
+        channel = targetSize[0]
+        blockLength = targetSize[-1]
+
+        # Define nomaliziation and decimal
+        decimal = flow.ScalingNshifting(256, -128)
+        rounding = utils.roundingWidentityGradient
+
+        # Building train & test datasets
+        lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
+        trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
+        trainTarget = utils.ImageNet(root='./data/ImageNet64', train=True, download=True, transform=trainsetTransform, d64=True)
+        testTarget = utils.ImageNet(root='./data/ImageNet64', train=False, download=True, transform=trainsetTransform, d64=True)
+        targetTrainLoader = torch.utils.data.DataLoader(trainTarget, batch_size=batch, shuffle=True)
+        targetTestLoader = torch.utils.data.DataLoader(testTarget, batch_size=batch, shuffle=True)
+
+    samples, _ = next(iter(targetTrainLoader))
+    IMG = samples[0].reshape(1, *samples.shape[1:])
+
+
+# load the model
+print("load saving at " + name)
+loadedF = torch.load(name, map_location=device)
+
+if 'easyMera' in name:
+    layerList = loadedF.layerList[:(4 * repeat)]
+    layerList = [layerList[no] for no in range(4 * repeat)]
+elif '1to2Mera' in name:
+    layerList = loadedF.layerList[:(2 * repeat)]
+    layerList = [layerList[no] for no in range(2 * repeat)]
+else:
+    raise Exception("model not define")
 
 targetSize = IMG.shape[1:]
+blockLength = targetSize[-1]
 
-initMethods = []
-initMethods.append(lambda: harrInitMethod1(targetSize[0]))
-initMethods.append(lambda: harrInitMethod2(targetSize[0]))
+# Define nomaliziation and decimal
+if 'easyMera' in name:
+    decimal = flow.ScalingNshifting(256, -128)
+elif '1to2Mera' in name:
+    decimal = flow.ScalingNshifting(256, 0)
+else:
+    raise Exception("model not define")
 
-orders = [True, False]
+rounding = utils.roundingWidentityGradient
 
-shapeList1D = [targetSize[0]] + [hchnl] * (nhidden + 1) + [targetSize[0]]
+# Building MERA mode
+if 'easyMera' in name:
+    f = flow.SimpleMERA(blockLength, layerList, None, None, repeat, args.depth + 1, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+elif '1to2Mera' in name:
+    f = flow.OneToTwoMERA(blockLength, layerList, None, None, repeat, args.depth, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+else:
+    raise Exception("model not define")
 
-layerList = []
-for j in range(2):
-    layerList.append(buildWaveletLayers(initMethods[j], targetSize[0], hchnl, nhidden, orders[j]))
-
-
-f = flow.OneToTwoMERA(targetSize[-1], layerList, None, None, 1, depth, 5, decimal=decimal, rounding=utils.roundingWidentityGradient)
 
 z, _ = f.inverse(IMG)
 
@@ -87,7 +196,7 @@ ul = z
 UR = []
 DL = []
 DR = []
-for _ in range(depth):
+for _ in range(args.depth):
     _x = im2grp(ul)
     ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
     ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
@@ -102,7 +211,7 @@ ul = renormFn(ul)
 lowul = ul
 highul = torch.zeros_like(ul)
 
-for no in reversed(range(depth)):
+for no in reversed(range(args.depth)):
     ur = torch.zeros_like(UR[no].reshape(*lowul.shape, 1))
     dl = torch.zeros_like(DL[no].reshape(*lowul.shape, 1))
     dr = torch.zeros_like(DR[no].reshape(*lowul.shape, 1))
@@ -111,7 +220,7 @@ for no in reversed(range(depth)):
     _x = torch.cat([lowul, ur, dl, dr], -1).reshape(*lowul.shape[:2], -1, 4)
     lowul = grp2im(_x).contiguous()
 
-for no in reversed(range(depth)):
+for no in reversed(range(args.depth)):
     ur = UR[no].reshape(*highul.shape, 1)
     dl = DL[no].reshape(*highul.shape, 1)
     dr = DR[no].reshape(*highul.shape, 1)
@@ -135,16 +244,11 @@ ff = rgb2gray(ff)
 lowff = rgb2gray(lowff)
 highff = rgb2gray(highff)
 
-import pdb
-pdb.set_trace()
-'''
-ffi = ff / ff.max()
-plt.imshow(ffi, cmap='gray')
-plt.show()
-'''
 
-X = np.arange(0, 512, 1)
-Y = np.arange(0, 512, 1)
+'''
+'''
+X = np.arange(0, blockLength, 1)
+Y = np.arange(0, blockLength, 1)
 X, Y = np.meshgrid(X, Y)
 
 fig = plt.figure()
@@ -165,12 +269,13 @@ surf = ax.plot_surface(X, Y, highff, cmap=cm.coolwarm, linewidth=0, antialiased=
 #ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
 
 # Add a color bar which maps values to colors.
-fig.colorbar(surf, shrink=0.5, aspect=5)
+#fig.colorbar(surf, shrink=0.5, aspect=5)
 
 plt.show()
+import pdb
+pdb.set_trace()
 
-
-for no in reversed(range(depth)):
+for no in reversed(range(args.depth)):
 
     ur = UR[no]
     dl = DL[no]
@@ -181,10 +286,10 @@ for no in reversed(range(depth)):
     ul = torch.cat([upper, down], -2)
 
 # convert zremaoin to numpy array
-zremain = ul.permute([0, 2, 3, 1]).detach().cpu().numpy()
+zremain = ul.permute([0, 2, 3, 1]).int().detach().cpu().numpy()
 
 waveletPlot = plt.figure(figsize=(8, 8))
 waveletAx = waveletPlot.add_subplot(111)
-waveletAx.imshow(zremain[0].int())
+waveletAx.imshow(zremain[0])
 
 plt.show()
