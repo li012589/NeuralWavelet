@@ -6,7 +6,7 @@ def jacobian(y,x):
     dim = y.shape[1]
     res = torch.zeros(x.shape[0],y.shape[1],x.shape[1]).to(x)
     for i in range(dim):
-        res[:,i,:] = torch.autograd.grad(y[:,i],x,grad_outputs=torch.ones(batchsize).to(x),create_graph=True)[0].reshape(res[:,i,:].shape)
+        res[:,i,:] = torch.autograd.grad(y[:,i],x,grad_outputs=torch.ones(batchsize).to(x),create_graph=True,allow_unused=True)[0].reshape(res[:,i,:].shape)
     return res
 
 def jacobianDiag(y,x):
