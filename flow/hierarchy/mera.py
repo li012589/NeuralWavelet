@@ -297,7 +297,7 @@ class SimpleMERA(Flow):
         UR = []
         DL = []
         DR = []
-        for no in range(depth - 1):
+        for no in range(depth):
             _x = im2grp(ul)
             ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
             ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
@@ -329,7 +329,7 @@ class SimpleMERA(Flow):
             DL.append(dl)
             DR.append(dr)
 
-        for no in reversed(range(depth - 1)):
+        for no in reversed(range(depth)):
             ur = UR[no].reshape(*ul.shape, 1)
             dl = DL[no].reshape(*ul.shape, 1)
             dr = DR[no].reshape(*ul.shape, 1)
@@ -347,7 +347,7 @@ class SimpleMERA(Flow):
         UR = []
         DL = []
         DR = []
-        for no in range(depth - 1):
+        for no in range(depth):
             _x = im2grp(ul)
             ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
             ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
@@ -357,7 +357,7 @@ class SimpleMERA(Flow):
             DL.append(dl)
             DR.append(dr)
 
-        for no in reversed(range(depth - 1)):
+        for no in reversed(range(depth)):
             ur = UR[no]
             dl = DL[no]
             dr = DR[no]

@@ -60,6 +60,9 @@ else:
 print("load saving at " + name)
 loadedF = torch.load(name, map_location=device)
 
+import pdb
+pdb.set_trace()
+
 if 'easyMera' in name:
     layerList = loadedF.layerList[:(4 * repeat)]
     layerList = [layerList[no] for no in range(4 * repeat)]
@@ -87,7 +90,7 @@ rounding = utils.roundingWidentityGradient
 
 # Building MERA mode
 if 'easyMera' in name:
-    f = flow.SimpleMERA(blockLength, layerList, None, None, repeat, args.depth + 1, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+    f = flow.SimpleMERA(blockLength, layerList, None, None, repeat, args.depth, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
 elif '1to2Mera' in name:
     f = flow.OneToTwoMERA(blockLength, layerList, None, None, repeat, args.depth, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
 else:
