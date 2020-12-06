@@ -19,6 +19,7 @@ parser.add_argument("-folder", default=None, help="Path to load the trained mode
 parser.add_argument("-cuda", type=int, default=-1, help="Which device to use with -1 standing for CPU, number bigger than -1 is N.O. of GPU.")
 parser.add_argument("-baseScale", type=float, default=-2.0, help="exp scaling of distribution's logscale to achieve better quality")
 parser.add_argument("-best", action='store_false', help="if load the best model")
+parser.add_argument("-exdepth", type=int, default=2, help="num of image to expand")
 parser.add_argument("-num", type=int, default=10, help="num of image to demo")
 
 args = parser.parse_args()
@@ -111,6 +112,7 @@ else:
     name = max(glob.iglob(os.path.join(rootFolder, 'savings', '*.saving')), key=os.path.getctime)
 
 depth = int(math.log(blockLength, 2))
+exdepth = args.exdepth
 
 # load the model
 print("load saving at " + name)
@@ -159,7 +161,7 @@ rounding = utils.roundingWidentityGradient
 if 'easyMera' in name:
     f = flow.SimpleMERA(blockLength, layerList, meanNNList, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
     flist = []
-    for i in range(depth):
+    for i in range(exdepth):
         flist.append(flow.SimpleMERA(blockLength, layerList, meanNNList, scaleNNlist, repeat, depth + i + 1, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device))
 elif '1to2Mera' in name:
     f = flow.OneToTwoMERA(blockLength, layerList, meanNNList, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
@@ -237,7 +239,7 @@ def plotLoading(loader):
     expSamples = samples
     plotList = []
     expZparts = zParts
-    for i in range(depth):
+    for i in range(exdepth):
         moreDetails = sampleMoreDetails(expSamples)
         expZparts = [moreDetails] + expZparts
         expZ = join(expZparts)
@@ -274,7 +276,7 @@ def plotLoading(loader):
         for j, term in enumerate(plotList):
             fig = plt.figure()
             ax = fig.add_subplot(111)
-            ax.imshow(clip(term[j]).permute([1, 2, 0]).detach().numpy())
+            ax.imshow(clip(term[i]).permute([1, 2, 0]).detach().numpy())
             plt.axis('off')
             plt.savefig(rootFolder + 'pic/exoloadPlot_N_' + str(i) + '_P_' + str(j) + '.png', bbox_inches="tight", pad_inches=0)
             plt.close()
