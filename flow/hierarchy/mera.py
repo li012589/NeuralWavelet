@@ -498,7 +498,6 @@ class SimpleMERA(Flow):
 
         return ul
 
-
     def logProbability(self, x, K=None):
         z, logp = self.inverse(x)
         if self.prior is not None:
@@ -507,4 +506,12 @@ class SimpleMERA(Flow):
             else:
                 return self.prior.logProbability(z, K) + logp
         return logp
+
+    def sample(self, batch, sample=False, logbase=0):
+        if self.meanNNlist is not None:
+            z = self.prior.lastPrior.sample(batch)
+        else:
+            z = self.prior.priorList[-1].sample(batch)
+
+        return self.inference(z, self.depth, startDepth=1, sample=sample, logbase=logbase)
 

@@ -90,19 +90,34 @@ rounding = utils.roundingWidentityGradient
 
 # Building MERA mode
 if 'easyMera' in name:
-    f = flow.SimpleMERA(blockLength, layerList, None, None, repeat, args.depth, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+    fList = []
+    for _depth in reversed(range(args.depth)):
+        f = flow.SimpleMERA(blockLength, layerList, None, None, repeat, _depth + 1, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+        fList.append(f)
 elif '1to2Mera' in name:
-    f = flow.OneToTwoMERA(blockLength, layerList, None, None, repeat, args.depth, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+    fList = []
+    for _depth in reversed(range(args.depth)):
+        f = flow.OneToTwoMERA(blockLength, layerList, None, None, repeat, _depth + 1, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+        fList.append(f)
 else:
     raise Exception("model not define")
 
-z, _ = f.inverse(IMG)
+zList = []
+for _f in fList:
+    z, _ = _f.inverse(IMG)
+    zList.append(z)
+
+z = torch.cat(zList, 0)
 
 assert args.depth <= int(math.log(blockLength, 2))
 
 
 def im2grp(t):
     return t.reshape(t.shape[0], t.shape[1], t.shape[2] // 2, 2, t.shape[3] // 2, 2).permute([0, 1, 2, 4, 3, 5]).reshape(t.shape[0], t.shape[1], -1, 4)
+
+
+def reform(tensor):
+    return tensor.reshape(tensor.shape[0], tensor.shape[1] // 3, 3, tensor.shape[2], tensor.shape[3]).permute([0, 1, 3, 4, 2]).contiguous().reshape(tensor.shape[0], tensor.shape[1] // 3, tensor.shape[2] * tensor.shape[3], 3)
 
 
 # define renorm fn
@@ -126,6 +141,7 @@ def backMeanStd(tensor):
     std = IMG.reshape(*IMG.shape[:2], -1).std(-1).reshape(*IMG.shape[:2], 1, 1)
     return tensor * std.repeat([1, 1, tensor.shape[-1], tensor.shape[-1]]) + mean.repeat([1, 1, tensor.shape[-1], tensor.shape[-1]])
 
+
 # another renorm fn
 def clip(tensor, l=0, h=255):
     return torch.clamp(tensor, l, h).int()
@@ -144,9 +160,17 @@ ul = z
 UR = []
 DL = []
 DR = []
-for _ in range(args.depth):
+for _depth in reversed(range(args.depth)):
     _x = im2grp(ul)
+
     ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+    _ul = ul[_depth].reshape(1, *ul.shape[1:])
+    if loadedF.meanNNlist is not None:
+        zeroDetails = torch.round(decimal.forward_(reform(loadedF.meanNNlist[0](decimal.inverse_(_ul))).contiguous()))
+    else:
+        zeroDetails = torch.round(decimal.forward_(loadedF.prior.priorList[0].mean.resahpe(1, 3, 1, 3).repeat(ul.shape[0], 1, np.prod(ul.shape[-2:]), 3)).contiguous())
+
+    _x[:1, :, :, 1:] = _x[:1, :, :, 1:] - zeroDetails
     ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
     dl = _x[:, :, :, 2].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
     dr = _x[:, :, :, 3].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
@@ -164,16 +188,17 @@ for no in reversed(range(args.depth)):
     dl = DL[no]
     dr = DR[no]
 
+
     upper = torch.cat([ul, ur], -1)
     down = torch.cat([dl, dr], -1)
     ul = torch.cat([upper, down], -2)
 
 # convert zremaoin to numpy array
-zremain = ul.permute([0, 2, 3, 1]).detach().cpu().numpy()
+zremain = ul[0].permute([1, 2, 0]).detach().cpu().numpy()
 
 waveletPlot = plt.figure(figsize=(8, 8))
 waveletAx = waveletPlot.add_subplot(111)
-waveletAx.imshow(zremain[0])
+waveletAx.imshow(zremain)
 plt.axis('off')
 plt.savefig(rootFolder + 'pic/BigWavelet.pdf', bbox_inches="tight", pad_inches=0)
 plt.close()
