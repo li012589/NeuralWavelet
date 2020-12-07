@@ -20,6 +20,7 @@ parser.add_argument("-batch", type=int, default=-1, help="batch size")
 parser.add_argument("-precision", type=int, default=24, help="precision of CDF")
 parser.add_argument("-earlyStop", type=int, default=10, help="fewer batch of testing")
 parser.add_argument("-best", action='store_false', help="if load the best model")
+parser.add_argument('-target', type=str, default='original', choices=['original', 'CIFAR', 'ImageNet32', 'ImageNet64', 'MNIST'], metavar='DATASET', help='Dataset choice.')
 
 
 args = parser.parse_args()
@@ -45,6 +46,9 @@ else:
 
 if args.batch != -1:
     batch = args.batch
+
+if args.target != 'original':
+    target = args.target
 # Building the target dataset
 if target == "CIFAR":
     # Define dimensions
@@ -115,6 +119,51 @@ else:
 # load the model
 print("load saving at " + name)
 f = torch.load(name, map_location=device)
+
+if args.target != 'original':
+    if 'easyMera' in name:
+        layerList = f.layerList[:(4 * repeat)]
+        layerList = [layerList[no] for no in range(4 * repeat)]
+    elif '1to2Mera' in name:
+        layerList = f.layerList[:(2 * repeat)]
+        layerList = [layerList[no] for no in range(2 * repeat)]
+    else:
+        raise Exception("model not define")
+
+    dimensional = 2
+    channel = targetSize[0]
+    blockLength = targetSize[-1]
+
+    # Define nomaliziation and decimal
+    if 'easyMera' in name:
+        decimal = flow.ScalingNshifting(256, -128)
+    elif '1to2Mera' in name:
+        decimal = flow.ScalingNshifting(256, 0)
+    else:
+        raise Exception("model not define")
+
+    if 'simplePrior_False' in name:
+        meanNNlist = [f.meanNNlist[0]]
+        scaleNNlist = [f.scaleNNlist[0]]
+    else:
+        meanNNlist = None
+        scaleNNlist = None
+
+    rounding = utils.roundingWidentityGradient
+
+    prior = f.prior
+    prior.depth = int(math.log(targetSize[-1], 2))
+    if 'simplePrior_False' in name:
+        pass
+    else:
+        prior.priorList = torch.nn.ModuleList([prior.priorList[0] for _ in range(int(math.log(targetSize[-1], 2)) - 1)] + [prior.priorList[-1]])
+    # Building MERA mode
+    if 'easyMera' in name:
+        f = flow.SimpleMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+    elif '1to2Mera' in name:
+        f = flow.OneToTwoMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+
+    f.prior = prior
 
 tmpLine = targetSize[-1] ** 2 // 4
 shapeList = []
