@@ -3,7 +3,7 @@ import math, torch
 from .template import HierarchyBijector, ParameterizedHierarchyBijector, OneToTwoHierarchyBijector
 from utils import getIndeices
 from flow import Flow
-import source
+import source, utils
 
 
 class MERA(HierarchyBijector):
@@ -381,6 +381,116 @@ class SimpleMERA(Flow):
             ul = grp2im(_x).contiguous()
 
         return ul, ul.new_zeros(ul.shape[0])
+
+    def inference(self, z, endDepth, startDepth=None, sample=False, logbase=-2):
+        assert self.layerList[0] is self.layerList[4 * self.repeat]
+        _depth = int(math.log(z.shape[-1], 2))
+        if startDepth is not None:
+            assert _depth == startDepth
+        else:
+            startDepth = _depth
+        assert endDepth > startDepth
+        ul = z
+        UR = []
+        DL = []
+        DR = []
+        for no in range(startDepth):
+            _x = im2grp(ul)
+            if no == 0:
+                _length = _x.shape[-2]
+            ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+            ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+            dl = _x[:, :, :, 2].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+            dr = _x[:, :, :, 3].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
+            UR.append(ur)
+            DL.append(dl)
+            DR.append(dr)
+
+        if self.meanNNlist is None:
+            assert self.prior.priorList[0] is self.prior.priorList[1]
+            for no in range(startDepth, endDepth):
+                if sample:
+                    details = utils.sampleDiscreteLogistic([z.shape[0], 3, _length, 3], self.prior.priorList[0].mean, self.prior.priorList[0].scale + logbase, decimal=self.decimal)
+                else:
+                    details = self.rounding(self.decimal.forward_(self.prior.priorList[0].mean.resahpe(1, 3, 1, 3).repeat(z.shape[0], 1, _length, 3)))
+                _length *= 4
+                UR.append(details[:, :, :, 0].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous())
+                DL.append(details[:, :, :, 1].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous())
+                DR.append(details[:, :, :, 2].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous())
+
+            startDepth = endDepth
+
+        for no in reversed(range(startDepth)):
+            ur = UR[no]
+            dl = DL[no]
+            dr = DR[no]
+            for i in reversed(range(4 * self.repeat)):
+                if i % 4 == 0:
+                    tmp = torch.cat([ur, dl, dr], 1)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    ul = ul - tmp
+                elif i % 4 == 1:
+                    tmp = torch.cat([ul, dl, dr], 1)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    ur = ur - tmp
+                elif i % 4 == 2:
+                    tmp = torch.cat([ul, ur, dr], 1)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    dl = dl - tmp
+                else:
+                    tmp = torch.cat([ul, ur, dl], 1)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    dr = dr - tmp
+
+            ur = ur.reshape(*ul.shape, 1)
+            dl = dl.reshape(*ul.shape, 1)
+            dr = dr.reshape(*ul.shape, 1)
+            ul = ul.reshape(*ul.shape, 1)
+
+            _x = torch.cat([ul, ur, dl, dr], -1).reshape(*ul.shape[:2], -1, 4)
+            ul = grp2im(_x).contiguous()
+
+        if self.meanNNlist is not None:
+            assert self.meanNNlist[0] is self.meanNNlist[1]
+            assert self.scaleNNlist[0] is self.scaleNNlist[1]
+            for no in range(startDepth, endDepth):
+                mean = reform(self.meanNNlist[0](self.decimal.inverse_(ul))).contiguous()
+                if sample:
+                    scale = reform(self.scaleNNlist[0](self.decimal.inverse_(ul))).contiguous()
+                    details = utils.sampleDiscreteLogistic(mean.shape, mean, scale + logbase, decimal=self.decimal)
+                else:
+                    details = self.rounding(self.decimal.forward_(mean))
+                ur = details[:, :, :, 0].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous()
+                dl = details[:, :, :, 1].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous()
+                dr = details[:, :, :, 2].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous()
+                for i in reversed(range(4 * self.repeat)):
+                    if i % 4 == 0:
+                        tmp = torch.cat([ur, dl, dr], 1)
+                        tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                        ul = ul - tmp
+                    elif i % 4 == 1:
+                        tmp = torch.cat([ul, dl, dr], 1)
+                        tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                        ur = ur - tmp
+                    elif i % 4 == 2:
+                        tmp = torch.cat([ul, ur, dr], 1)
+                        tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                        dl = dl - tmp
+                    else:
+                        tmp = torch.cat([ul, ur, dl], 1)
+                        tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                        dr = dr - tmp
+
+                ur = ur.reshape(*ul.shape, 1)
+                dl = dl.reshape(*ul.shape, 1)
+                dr = dr.reshape(*ul.shape, 1)
+                ul = ul.reshape(*ul.shape, 1)
+
+                _x = torch.cat([ul, ur, dl, dr], -1).reshape(*ul.shape[:2], -1, 4)
+                ul = grp2im(_x).contiguous()
+
+        return ul
+
 
     def logProbability(self, x, K=None):
         z, logp = self.inverse(x)
