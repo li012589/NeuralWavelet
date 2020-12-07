@@ -94,7 +94,7 @@ if 'easyMera' in name:
 elif '1to2Mera' in name:
     fList = []
     for _depth in reversed(range(args.depth)):
-        f = flow.OneToTwoMERA(blockLength, layerList, None, None, repeat, args.depth, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+        f = flow.OneToTwoMERA(blockLength, layerList, None, None, repeat, _depth + 1, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
         fList.append(f)
 else:
     raise Exception("model not define")
@@ -131,6 +131,7 @@ def backMeanStd(tensor):
     mean = IMG.reshape(*IMG.shape[:2], -1).mean(-1).reshape(*IMG.shape[:2], 1, 1)
     std = IMG.reshape(*IMG.shape[:2], -1).std(-1).reshape(*IMG.shape[:2], 1, 1)
     return tensor * std.repeat([1, 1, tensor.shape[-1], tensor.shape[-1]]) + mean.repeat([1, 1, tensor.shape[-1], tensor.shape[-1]])
+
 
 # another renorm fn
 def clip(tensor, l=0, h=255):
