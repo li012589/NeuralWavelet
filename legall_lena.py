@@ -16,7 +16,7 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 parser = argparse.ArgumentParser(description="")
 
 parser.add_argument("-folder", default=None, help="Path to load the trained model")
-parser.add_argument("-depth", type=int, default=1, help="wavelet depth")
+parser.add_argument("-deltaDepth", type=int, default=1, help="wavelet depth")
 parser.add_argument("-best", action='store_false', help="if load the best model")
 parser.add_argument("-img", default='./etc/lena512color.tiff', help="the img path")
 
@@ -137,18 +137,28 @@ elif '1to2Mera' in name:
 else:
     raise Exception("model not define")
 
+if 'simplePrior_False' in name:
+    meanNNlist = [loadedF.meanNNlist[0]]
+    scaleNNlist = [loadedF.scaleNNlist[0]]
+else:
+    meanNNlist = None
+    scaleNNlist = None
+
 rounding = utils.roundingWidentityGradient
 
 # Building MERA mode
 if 'easyMera' in name:
-    f = flow.SimpleMERA(blockLength, layerList, None, None, repeat, args.depth, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+    f = flow.SimpleMERA(blockLength, layerList, None, None, repeat, args.deltaDepth, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+    ftmp = flow.SimpleMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, int(math.log(targetSize[-1], 2)), nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
 elif '1to2Mera' in name:
-    f = flow.OneToTwoMERA(blockLength, layerList, None, None, repeat, args.depth, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+    f = flow.OneToTwoMERA(blockLength, layerList, None, None, repeat, args.deltaDepth, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
 else:
     raise Exception("model not define")
 
 
 z, _ = f.inverse(IMG)
+
+zerosCore = ftmp.inference(torch.round(decimal.forward_(loadedF.prior.lastPrior.mean[0].reshape(1, 3, 2, 2))), int(math.log(targetSize[-1], 2)) - args.deltaDepth, startDepth=1)
 
 def fftplot(img):
     f = np.fft.fft2(img)
@@ -179,6 +189,10 @@ def grp2im(t):
     return t.reshape(t.shape[0], t.shape[1], int(t.shape[2] ** 0.5), int(t.shape[2] ** 0.5), 2, 2).permute([0, 1, 2, 4, 3, 5]).reshape(t.shape[0], t.shape[1], int(t.shape[2] ** 0.5) * 2, int(t.shape[2] ** 0.5) * 2)
 
 
+def reform(tensor):
+    return tensor.reshape(tensor.shape[0], tensor.shape[1] // 3, 3, tensor.shape[2], tensor.shape[3]).permute([0, 1, 3, 4, 2]).contiguous().reshape(tensor.shape[0], tensor.shape[1] // 3, tensor.shape[2] * tensor.shape[3], 3)
+
+
 # define renorm fn
 def back01(tensor):
     ten = tensor.clone().float()
@@ -196,7 +210,7 @@ ul = z
 UR = []
 DL = []
 DR = []
-for _ in range(args.depth):
+for _ in range(args.deltaDepth):
     _x = im2grp(ul)
     ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
     ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
@@ -209,18 +223,23 @@ for _ in range(args.depth):
 ul = renormFn(ul)
 
 lowul = ul
-highul = torch.zeros_like(ul)
+highul = zerosCore
 
-for no in reversed(range(args.depth)):
-    ur = torch.zeros_like(UR[no].reshape(*lowul.shape, 1))
-    dl = torch.zeros_like(DL[no].reshape(*lowul.shape, 1))
-    dr = torch.zeros_like(DR[no].reshape(*lowul.shape, 1))
+
+for no in reversed(range(args.deltaDepth)):
+    if meanNNlist is not None:
+        zeroDetails = torch.round(decimal.forward_(reform(loadedF.meanNNlist[0](decimal.inverse_(lowul))).contiguous()))
+    else:
+        zeroDetails = torch.round(decimal.forward_(loadedF.prior.priorList[0].mean.resahpe(1, 3, 1, 3).repeat(lowul.shape[0], 1, np.prod(lowul.shape[-2:]), 3)).contiguous())
+    ur = zeroDetails[:, :, :, 0].reshape(*lowul.shape, 1)
+    dl = zeroDetails[:, :, :, 1].reshape(*lowul.shape, 1)
+    dr = zeroDetails[:, :, :, 2].reshape(*lowul.shape, 1)
     lowul = lowul.reshape(*lowul.shape, 1)
 
     _x = torch.cat([lowul, ur, dl, dr], -1).reshape(*lowul.shape[:2], -1, 4)
     lowul = grp2im(_x).contiguous()
 
-for no in reversed(range(args.depth)):
+for no in reversed(range(args.deltaDepth)):
     ur = UR[no].reshape(*highul.shape, 1)
     dl = DL[no].reshape(*highul.shape, 1)
     dr = DR[no].reshape(*highul.shape, 1)
@@ -229,8 +248,15 @@ for no in reversed(range(args.depth)):
     _x = torch.cat([highul, ur, dl, dr], -1).reshape(*highul.shape[:2], -1, 4)
     highul = grp2im(_x).contiguous()
 
-lowIMG,_ = f.forward(lowul)
-highIMG,_ = f.forward(highul)
+lowIMG, _ = f.forward(lowul)
+highIMG, _ = f.forward(highul)
+
+plt.figure()
+plt.imshow(IMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy())
+plt.figure()
+plt.imshow(lowIMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy())
+plt.figure()
+plt.imshow(highIMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy())
 
 ff = fftplot(IMG.reshape(IMG.shape[1:]).permute([1, 2, 0]).detach().numpy())
 lowff = fftplot(lowIMG.reshape(lowIMG.shape[1:]).permute([1, 2, 0]).detach().numpy())
@@ -254,14 +280,17 @@ X, Y = np.meshgrid(X, Y)
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 surf = ax.plot_surface(X, Y, ff, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+ax.view_init(elev=15., azim=-75)
 
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 surf = ax.plot_surface(X, Y, lowff, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+ax.view_init(elev=15., azim=-75)
 
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 surf = ax.plot_surface(X, Y, highff, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+ax.view_init(elev=15., azim=-75)
 
 # Customize the z axis.
 #ax.set_zlim(-1.01, 1.01)
@@ -274,7 +303,7 @@ surf = ax.plot_surface(X, Y, highff, cmap=cm.coolwarm, linewidth=0, antialiased=
 plt.show()
 import pdb
 pdb.set_trace()
-
+'''
 for no in reversed(range(args.depth)):
 
     ur = UR[no]
@@ -293,3 +322,4 @@ waveletAx = waveletPlot.add_subplot(111)
 waveletAx.imshow(zremain[0])
 
 plt.show()
+'''
