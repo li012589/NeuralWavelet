@@ -126,12 +126,6 @@ def back01(tensor):
     ten = ten.view(tensor.shape)
     return ten
 
-def back01V2(tensor):
-    ten = tensor.clone().float()
-    ten -= ten.min()
-    ten /= ten.max()
-    return ten
-
 
 def backMeanStd(tensor):
     mean = IMG.reshape(*IMG.shape[:2], -1).mean(-1).reshape(*IMG.shape[:2], 1, 1)
@@ -150,7 +144,7 @@ def batchNorm(tensor, base=1.0):
     return m(tensor).float() + base
 
 
-renormFn = lambda x: back01V2(batchNorm(x))
+renormFn = lambda x: back01(batchNorm(x))
 
 # collect parts
 ul = z
