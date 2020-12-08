@@ -121,10 +121,38 @@ elif '1to2Mera' in name:
 
 f.prior = prior
 
-
 samples = f.sample(batch)
 
-samples = samples.int()
+# define renorm fn
+def back01(tensor):
+    ten = tensor.clone().float()
+    ten = ten.view(ten.shape[0] * ten.shape[1], -1)
+    ten -= ten.min(1, keepdim=True)[0]
+    ten /= ten.max(1, keepdim=True)[0]
+    ten = ten.view(tensor.shape)
+    return ten
+
+
+def backMeanStd(tensor):
+    mean = IMG.reshape(*IMG.shape[:2], -1).mean(-1).reshape(*IMG.shape[:2], 1, 1)
+    std = IMG.reshape(*IMG.shape[:2], -1).std(-1).reshape(*IMG.shape[:2], 1, 1)
+    return tensor * std.repeat([1, 1, tensor.shape[-1], tensor.shape[-1]]) + mean.repeat([1, 1, tensor.shape[-1], tensor.shape[-1]])
+
+
+# another renorm fn
+def clip(tensor, l=0, h=255):
+    return torch.clamp(tensor, l, h).int()
+
+
+# yet another renorm fn
+def batchNorm(tensor, base=1.0):
+    m = nn.BatchNorm2d(tensor.shape[1], affine=False)
+    return m(tensor).float() + base
+
+
+renormFn = lambda x: back01(batchNorm(x))
+
+samples = renormFn(samples).detach()
 
 grid_img = torchvision.utils.make_grid(samples, nrow=args.num)
 
