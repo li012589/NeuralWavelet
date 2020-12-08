@@ -123,6 +123,7 @@ f.prior = prior
 
 samples = f.sample(batch)
 
+
 # define renorm fn
 def back01(tensor):
     ten = tensor.clone().float()
@@ -131,12 +132,6 @@ def back01(tensor):
     ten /= ten.max(1, keepdim=True)[0]
     ten = ten.view(tensor.shape)
     return ten
-
-
-def backMeanStd(tensor):
-    mean = IMG.reshape(*IMG.shape[:2], -1).mean(-1).reshape(*IMG.shape[:2], 1, 1)
-    std = IMG.reshape(*IMG.shape[:2], -1).std(-1).reshape(*IMG.shape[:2], 1, 1)
-    return tensor * std.repeat([1, 1, tensor.shape[-1], tensor.shape[-1]]) + mean.repeat([1, 1, tensor.shape[-1], tensor.shape[-1]])
 
 
 # another renorm fn
