@@ -98,24 +98,29 @@ def im2grp(t):
 
 
 class PassiveHierarchyPrior(Source):
-    def __init__(self, length, prior, decimal=None, rounding=None, K=1.0, name="SimpleHierarchyPiror"):
+    def __init__(self, length, prior, decimal=None, rounding=None, compatible=False, K=1.0, name="SimpleHierarchyPiror"):
         super(PassiveHierarchyPrior, self).__init__([3, length, length], K, name)
         self.depth = int(math.log(length, 2))
 
         self.decimal = decimal
         self.rounding = rounding
         self.lastPrior = prior
+        self.compatible = compatible
 
     def sample(self, batchSize, K=None):
         raise Exception("Not implemented")
 
     def logProbability(self, z, K=None, meanList=None, scaleList=None):
+        if self.compatible:
+            depth = int(math.log(z.shape[-1], 2))
+        else:
+            depth = self.depth
         if meanList is None or scaleList is None:
             raise Exception("no mean or scale passed")
         logp = z.new_zeros(z.shape[0])
         ul = z
-        for no in range(self.depth):
-            if no == self.depth - 1:
+        for no in range(depth):
+            if no == depth - 1:
                 ul = ul.reshape(*ul.shape[:2], 1, 4)
                 _logp = self.lastPrior._energy(ul)
             else:
@@ -132,9 +137,10 @@ class PassiveHierarchyPrior(Source):
 
 
 class SimpleHierarchyPrior(Source):
-    def __init__(self, length, nMixing, decimal=None, rounding=None, clamp=None, sameDetail=True, K=1.0, name="SimpleHierarchyPiror"):
+    def __init__(self, length, nMixing, decimal=None, rounding=None, clamp=None, sameDetail=True, compatible=False, K=1.0, name="SimpleHierarchyPiror"):
         super(SimpleHierarchyPrior, self).__init__([3, length, length], K, name)
         self.depth = int(math.log(length, 2))
+        self.compatible = compatible
 
         priorList = []
 
@@ -162,17 +168,27 @@ class SimpleHierarchyPrior(Source):
         raise Exception("Not implemented")
 
     def logProbability(self, z, K=None):
+        if self.compatible:
+            depth = int(math.log(z.shape[-1], 2))
+        else:
+            depth = self.depth
         logp = z.new_zeros(z.shape[0])
         ul = z
-        for no in range(self.depth):
-            if no == self.depth - 1:
+        for no in range(depth):
+            if no == depth - 1:
                 ul = ul.reshape(*ul.shape[:2], 1, 4)
-                _logp = self.priorList[no]._energy(ul)
+                if self.compatible:
+                    _logp = self.priorList[-1]._energy(ul)
+                else:
+                    _logp = self.priorList[no]._energy(ul)
             else:
                 _x = im2grp(ul)
                 z_ = _x[:, :, :, 1:].contiguous()
                 ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
-                _logp = self.priorList[no]._energy(z_)
+                if self.compatible:
+                    _logp = self.priorList[0]._energy(z_)
+                else:
+                    _logp = self.priorList[no]._energy(z_)
             logp = logp + _logp
         return -logp
 
