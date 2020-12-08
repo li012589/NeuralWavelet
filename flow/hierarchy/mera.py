@@ -506,5 +506,7 @@ class SimpleMERA(Flow):
         else:
             z = self.prior.priorList[-1].sample(batch)
 
+        z = grp2im(z)
+
         return self.inference(z, self.depth, startDepth=1, sample=sample, logbase=logbase)
 
