@@ -78,6 +78,10 @@ def logMixDiscreteLogistic(x, mean, logscale, parts, decimal=None, test=True, ep
 
 
 def sampleMixDiscreteLogistic(size, mean, logscale, parts, rounding=torch.round, decimal=None, test=True, testBroadcastSize=False, eps=1e-8):
+    assert mean.shape[0] == parts.shape[-1]
+    assert logscale.shape[0] == parts.shape[-1]
+    parts = torch.softmax(parts, dim=-1)
+
     mean, logscale = selectArgs(size, parts, [mean, logscale])
 
     return sampleDiscreteLogistic(size, mean, logscale, rounding, decimal, testBroadcastSize, eps)
