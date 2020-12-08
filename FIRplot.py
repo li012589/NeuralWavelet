@@ -10,7 +10,11 @@ import torch
 
 #h = np.array([1/2, 1 /2])
 
-h = np.array([-1/2, 1, -1/2])
+_h = np.array([-1/2, 1, -1/2])
+
+h = np.zeros(32)
+
+h[:_h.shape[0]] = _h
 
 def H_o(omega, h):
     sum = 0
@@ -26,4 +30,20 @@ from matplotlib import pyplot as plt
 
 plt.plot(H)
 
+deltaexp = np.exp((np.arange(h.shape[-1]) * 1j * step * np.pi))
+
+mod = [np.exp((np.arange(h.shape[-1]) * 1j * 0 * np.pi))]
+for n in range(int(1 / step)):
+    _mod = mod[-1] * deltaexp
+    mod.append(_mod)
+
+mod = np.vstack(mod)
+
+H = np.abs(mod.dot(h))
+
+plt.figure()
+
+plt.plot(H)
 plt.show()
+import pdb
+pdb.set_trace()
