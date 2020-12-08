@@ -60,9 +60,6 @@ else:
 print("load saving at " + name)
 loadedF = torch.load(name, map_location=device)
 
-import pdb
-pdb.set_trace()
-
 if 'easyMera' in name:
     layerList = loadedF.layerList[:(4 * repeat)]
     layerList = [layerList[no] for no in range(4 * repeat)]
