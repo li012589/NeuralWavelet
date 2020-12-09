@@ -2,6 +2,7 @@ import numpy as np
 import argparse, json, math
 
 import torch, torchvision
+from torch.utils.data import Dataset, DataLoader
 from torch import nn
 import matplotlib.pyplot as plt
 
@@ -90,9 +91,10 @@ targetTrainLoader2 = torch.utils.data.DataLoader(trainTarget2, batch_size=batch,
 targetTestLoader2 = torch.utils.data.DataLoader(testTarget2, batch_size=batch, shuffle=False)
 
 
+'''
 class JointData(object):
     def __init__(self, datas, sizes, batch):
-        self.datas = [iter(term) for term in datas]
+        self.datas = [term for term in datas]
         self.sizes = np.array(sizes) // batch
 
     def __iter__(self):
@@ -102,11 +104,33 @@ class JointData(object):
     def __next__(self):
         probs = self.sizes - np.array(self.n)
         if np.allclose(probs, np.zeros(probs.shape)):
-            raise StopIteration
+            self.n = [0, 0, 0]
         probs = probs / np.sum(probs)
         no = np.argmax(np.random.multinomial(1, probs))
         self.n[no] += 1
         samples, labels = next(self.datas[no])
+        yield samples, labels
+'''
+
+
+class JointData(Dataset):
+    def __init__(self, datas, sizes, batch):
+        self.datas = [term for term in datas]
+        self.sizes = np.ceil(np.array(sizes) / batch)
+        self.n = [0, 0, 0]
+
+    def __len__(self):
+        return np.sum(self.sizes)
+
+    def __getitem__(self, index):
+        assert index == np.sum(self.n)
+        probs = self.sizes - np.array(self.n)
+        probs = probs / np.sum(probs)
+        no = np.argmax(np.random.multinomial(1, probs))
+        self.n[no] += 1
+        samples, labels = next(self.datas[no])
+        if index == self.__len__() - 1:
+            self.n = [0, 0, 0]
         return samples, labels
 
 
