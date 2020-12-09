@@ -91,28 +91,33 @@ targetTrainLoader2 = torch.utils.data.DataLoader(trainTarget2, batch_size=batch,
 targetTestLoader2 = torch.utils.data.DataLoader(testTarget2, batch_size=batch, shuffle=False)
 
 
-'''
 class JointData(object):
     def __init__(self, datas, sizes, batch):
-        self.datas = [term for term in datas]
-        self.sizes = np.array(sizes) // batch
+        self.datas = datas
+        self.iters = [iter(term) for term in datas]
+        self.sizes = np.ceil(np.array(sizes) / batch)
+        self.n = [0, 0, 0]
 
     def __iter__(self):
+        self.iters = [iter(term) for term in self.datas]
         self.n = [0, 0, 0]
         return self
 
     def __next__(self):
         probs = self.sizes - np.array(self.n)
-        if np.allclose(probs, np.zeros(probs.shape)):
-            self.n = [0, 0, 0]
         probs = probs / np.sum(probs)
+        if np.allclose(probs, np.zeros(probs.shape)):
+            self.iters = [iter(term) for term in self.datas]
+            self.n = [0, 0, 0]
+            raise StopIteration
         no = np.argmax(np.random.multinomial(1, probs))
         self.n[no] += 1
-        samples, labels = next(self.datas[no])
-        yield samples, labels
+        samples, labels = next(self.iters[no])
+        print(no, samples.shape, self.n, self.sizes)
+        return samples, labels
+
+
 '''
-
-
 class JointData(Dataset):
     def __init__(self, datas, sizes, batch):
         self.datas = [term for term in datas]
@@ -132,6 +137,7 @@ class JointData(Dataset):
         if index == self.__len__() - 1:
             self.n = [0, 0, 0]
         return samples, labels
+'''
 
 
 joinTargetTrainLoader = JointData([targetTrainLoader0, targetTrainLoader1, targetTrainLoader2], [len(trainTarget0), len(trainTarget1), len(trainTarget2)], batch)
