@@ -105,11 +105,11 @@ class JointData(object):
 
     def __next__(self):
         probs = self.sizes - np.array(self.n)
-        probs = probs / np.sum(probs)
         if np.allclose(probs, np.zeros(probs.shape)):
             self.iters = [iter(term) for term in self.datas]
             self.n = [0, 0, 0]
             raise StopIteration
+        probs = probs / np.sum(probs)
         no = np.argmax(np.random.multinomial(1, probs))
         self.n[no] += 1
         samples, labels = next(self.iters[no])
