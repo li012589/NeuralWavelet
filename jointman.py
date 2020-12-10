@@ -113,7 +113,6 @@ class JointData(object):
         no = np.argmax(np.random.multinomial(1, probs))
         self.n[no] += 1
         samples, labels = next(self.iters[no])
-        print(no, samples.shape, self.n, self.sizes)
         return samples, labels
 
 
