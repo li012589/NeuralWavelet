@@ -158,7 +158,11 @@ else:
 
 z, _ = f.inverse(IMG)
 
-zerosCore = ftmp.inference(torch.round(decimal.forward_(loadedF.prior.lastPrior.mean[0].reshape(1, 3, 2, 2))), int(math.log(targetSize[-1], 2)) - args.deltaDepth, startDepth=1)
+if 'simplePrior_False' in name:
+    zerosCore = ftmp.inference(torch.round(decimal.forward_(loadedF.prior.lastPrior.mean[0].reshape(1, 3, 2, 2))), int(math.log(targetSize[-1], 2)) - args.deltaDepth, startDepth=1)
+else:
+    zerosCore = ftmp.inference(torch.round(decimal.forward_(loadedF.prior.priorList[-1].mean[0].reshape(1, 3, 2, 2))), int(math.log(targetSize[-1], 2)) - args.deltaDepth, startDepth=1)
+
 
 def fftplot(img):
     f = np.fft.fft2(img)
@@ -230,7 +234,7 @@ for no in reversed(range(args.deltaDepth)):
     if meanNNlist is not None:
         zeroDetails = torch.round(decimal.forward_(reform(loadedF.meanNNlist[0](decimal.inverse_(lowul))).contiguous()))
     else:
-        zeroDetails = torch.round(decimal.forward_(loadedF.prior.priorList[0].mean.resahpe(1, 3, 1, 3).repeat(lowul.shape[0], 1, np.prod(lowul.shape[-2:]), 3)).contiguous())
+        zeroDetails = torch.round(decimal.forward_(loadedF.prior.priorList[0].mean.reshape(1, 3, 1, 3).repeat(lowul.shape[0], 1, np.prod(lowul.shape[-2:]), 3)).contiguous())
     ur = zeroDetails[:, :, :, 0].reshape(*lowul.shape, 1)
     dl = zeroDetails[:, :, :, 1].reshape(*lowul.shape, 1)
     dr = zeroDetails[:, :, :, 2].reshape(*lowul.shape, 1)

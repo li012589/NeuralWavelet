@@ -159,7 +159,7 @@ for _depth in reversed(range(args.depth)):
     if loadedF.meanNNlist is not None:
         zeroDetails = torch.round(decimal.forward_(reform(loadedF.meanNNlist[0](decimal.inverse_(_ul))).contiguous()))
     else:
-        zeroDetails = torch.round(decimal.forward_(loadedF.prior.priorList[0].mean.resahpe(1, 3, 1, 3).repeat(ul.shape[0], 1, np.prod(ul.shape[-2:]), 3)).contiguous())
+        zeroDetails = torch.round(decimal.forward_(loadedF.prior.priorList[0].mean.reshape(1, 3, 1, 3).repeat(1, 1, np.prod(ul.shape[-2:]), 1)).contiguous())
 
     _x[:1, :, :, 1:] = _x[:1, :, :, 1:] - zeroDetails
     ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
