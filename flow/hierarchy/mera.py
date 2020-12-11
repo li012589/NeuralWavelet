@@ -415,7 +415,7 @@ class SimpleMERA(Flow):
         DR = []
         for no in range(startDepth):
             _x = im2grp(ul)
-            if no == 0:
+            if no == startDepth - 1:
                 _length = _x.shape[-2]
             ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
             ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
@@ -426,18 +426,30 @@ class SimpleMERA(Flow):
             DR.append(dr)
 
         if self.meanNNlist is None:
-            assert self.prior.priorList[0] is self.prior.priorList[1]
-            for no in range(startDepth, endDepth):
-                if sample:
-                    details = utils.sampleDiscreteLogistic([z.shape[0], 3, _length, 3], self.prior.priorList[0].mean, self.prior.priorList[0].scale + logbase, decimal=self.decimal)
-                else:
-                    details = self.rounding(self.decimal.forward_(self.prior.priorList[0].mean.resahpe(1, 3, 1, 3).repeat(z.shape[0], 1, _length, 3)))
+            _UR = []
+            _DL = []
+            _DR = []
+            _shapeList = []
+            for _ in range(startDepth, endDepth):
                 _length *= 4
-                UR.append(details[:, :, :, 0].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous())
-                DL.append(details[:, :, :, 1].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous())
-                DR.append(details[:, :, :, 2].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous())
+                _shapeList.append(_length)
+            assert self.prior.priorList[0] is self.prior.priorList[1]
+            for no in reversed(range(startDepth, endDepth)):
+                if sample:
+                    details = utils.sampleDiscreteLogistic([z.shape[0], 3, _shapeList[no - startDepth], 3], self.prior.priorList[0].mean, self.prior.priorList[0].scale + logbase, decimal=self.decimal)
+                else:
+                    details = self.rounding(self.decimal.forward_(self.prior.priorList[0].mean.reshape(1, 3, 1, 3).repeat(z.shape[0], 1, _shapeList[no - startDepth], 1)))
+                _UR.append(details[:, :, :, 0].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous())
+                _DL.append(details[:, :, :, 1].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous())
+                _DR.append(details[:, :, :, 2].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous())
 
             startDepth = endDepth
+
+            UR = _UR + UR
+            DL = _DL + DL
+            DR = _DR + DR
+            import pdb
+            pdb.set_trace()
 
         for no in reversed(range(startDepth)):
             ur = UR[no]
