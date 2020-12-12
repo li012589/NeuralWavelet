@@ -448,8 +448,6 @@ class SimpleMERA(Flow):
             UR = _UR + UR
             DL = _DL + DL
             DR = _DR + DR
-            import pdb
-            pdb.set_trace()
 
         for no in reversed(range(startDepth)):
             ur = UR[no]
