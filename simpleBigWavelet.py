@@ -19,6 +19,7 @@ parser.add_argument("-folder", default=None, help="Path to load the trained mode
 parser.add_argument("-cuda", type=int, default=-1, help="Which device to use with -1 standing for CPU, number bigger than -1 is N.O. of GPU.")
 parser.add_argument("-depth", type=int, default=2, help="wavelet depth")
 parser.add_argument("-best", action='store_false', help="if load the best model")
+parser.add_argument("-epoch", type=int, default=-1, help="epoch to load")
 parser.add_argument("-img", default=None, help="the img path")
 
 args = parser.parse_args()
@@ -53,8 +54,10 @@ IMG = IMG.reshape(1, *IMG.shape).float().to(device)
 # decide which model to load
 if args.best:
     name = max(glob.iglob(os.path.join(rootFolder, '*.saving')), key=os.path.getctime)
-else:
+elif args.epoch == -1:
     name = max(glob.iglob(os.path.join(rootFolder, 'savings', '*.saving')), key=os.path.getctime)
+else:
+    name = max(glob.iglob(os.path.join(rootFolder, 'savings', 'SimpleMERA_epoch_' + str(args.epoch) + '.saving')), key=os.path.getctime)
 
 # load the model
 print("load saving at " + name)
