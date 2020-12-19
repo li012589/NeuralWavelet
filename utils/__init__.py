@@ -20,3 +20,4 @@ from .distributions import *
 from .im2col import getIndeices, dispatch, collect
 from .imagenetload import ImageNet
 from .wavelet import harrInitMethod1, harrInitMethod2, leGallInitMethod1, leGallInitMethod2, buildWaveletLayers
+from .rgbycc import rgb2ycc, ycc2rgb
