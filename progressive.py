@@ -10,6 +10,7 @@ from torch import nn
 from encoder import rans, coder
 from utils import cdfDiscreteLogitstic, cdfMixDiscreteLogistic
 from matplotlib import pyplot as plt
+import matplotlib
 
 #torch.manual_seed(42)
 
@@ -278,21 +279,29 @@ def plotLoading(loader):
 
     for i in range(rcnSamples.shape[1]):
         for j in range(int(math.log(blockLength, 2))):
+            im = clip(rcnSamples[j][i]).permute([1, 2, 0]).detach().numpy().astype('uint8')
+            matplotlib.image.imsave(rootFolder + 'pic/proloadPlot_N_' + str(i) + '_P_' + str(j) + '.png', im)
+            '''
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.imshow(clip(rcnSamples[j][i]).permute([1, 2, 0]).detach().numpy())
             plt.axis('off')
-            plt.savefig(rootFolder + 'pic/proloadPlot_N_' + str(i) + '_P_' + str(j) + '.png', bbox_inches="tight", pad_inches=0)
+            plt.savefig(rootFolder + 'pic/proloadPlot_N_' + str(i) + '_P_' + str(j) + '.tiff', bbox_inches="tight", pad_inches=0)
             plt.close()
+            '''
 
     for i in range(batch):
         for j, term in enumerate(plotList):
+            im = clip(term[i]).permute([1, 2, 0]).detach().numpy().astype('uint8')
+            matplotlib.image.imsave(rootFolder + 'pic/exoloadPlot_N_' + str(i) + '_P_' + str(j) + '.png', im)
+            '''
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.imshow(clip(term[i]).permute([1, 2, 0]).detach().numpy())
             plt.axis('off')
-            plt.savefig(rootFolder + 'pic/exoloadPlot_N_' + str(i) + '_P_' + str(j) + '.png', bbox_inches="tight", pad_inches=0)
+            plt.savefig(rootFolder + 'pic/exoloadPlot_N_' + str(i) + '_P_' + str(j) + '.tiff', bbox_inches="tight", pad_inches=0)
             plt.close()
+            '''
 
 
 plotLoading(targetTrainLoader)
