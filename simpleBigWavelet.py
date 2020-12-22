@@ -164,7 +164,8 @@ def batchNorm(tensor, base=1.0):
     return m(tensor).float() + base
 
 
-renormFn = lambda x: grayWorld(back01(x))
+#renormFn = lambda x: grayWorld(back01(x))
+renormFn = lambda x: back01(x)
 
 # collect parts
 ul = z

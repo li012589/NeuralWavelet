@@ -19,6 +19,7 @@ parser = argparse.ArgumentParser(description="")
 parser.add_argument("-folder", default=None, help="Path to load the trained model")
 parser.add_argument("-cuda", type=int, default=-1, help="Which device to use with -1 standing for CPU, number bigger than -1 is N.O. of GPU.")
 parser.add_argument("-baseScale", type=float, default=-2.0, help="exp scaling of distribution's logscale to achieve better quality")
+parser.add_argument("-exBaseScale", type=float, default=-2.0, help="exp scaling of distribution's logscale to achieve better quality for exoplot")
 parser.add_argument("-best", action='store_false', help="if load the best model")
 parser.add_argument("-epoch", type=int, default=-1, help="epoch to load")
 parser.add_argument("-exdepth", type=int, default=2, help="num of image to expand")
@@ -221,9 +222,9 @@ def sampleMoreDetails(samples):
     if 'simplePrior_False' in name:
         mean = reform(f.meanNNlist[0](f.decimal.inverse_(samples))).contiguous()
         scale = reform(f.scaleNNlist[0](f.decimal.inverse_(samples))).contiguous()
-        sampledDetails = utils.sampleDiscreteLogistic([*mean.shape], mean, scale + args.baseScale, decimal=f.decimal)
+        sampledDetails = utils.sampleDiscreteLogistic([*mean.shape], mean, scale + args.exBaseScale, decimal=f.decimal)
     else:
-        sampledDetails = utils.sampleDiscreteLogistic([batch, 3, np.prod(samples.shape[-2:]), 3], loadedF.prior.priorList[0].mean, loadedF.prior.priorList[0].logscale + args.baseScale, decimal=f.decimal)
+        sampledDetails = utils.sampleDiscreteLogistic([batch, 3, np.prod(samples.shape[-2:]), 3], loadedF.prior.priorList[0].mean, loadedF.prior.priorList[0].logscale + args.exBaseScale, decimal=f.decimal)
     return sampledDetails
 
 
@@ -338,10 +339,9 @@ def plotLoading(loader):
         return torch.clamp(scaledTensor, 0, 255).int()
 
 
-
     for i in range(rcnSamples.shape[1]):
         for j in range(int(math.log(blockLength, 2))):
-            im = clip(rcnSamples[j][i]).permute([1, 2, 0]).detach().numpy().astype('uint8')
+            im = back01(rcnSamples[j][i]).permute([1, 2, 0]).detach().numpy()
             matplotlib.image.imsave(rootFolder + 'pic/proloadPlot_N_' + str(i) + '_P_' + str(j) + '.png', im)
             '''
             fig = plt.figure()
@@ -354,8 +354,9 @@ def plotLoading(loader):
 
     for i in range(batch):
         for j, term in enumerate(plotList):
+            im = back01(term[i]).permute([1, 2, 0]).detach().numpy()
             #im = grayWorld(term[i:i + 1])[0].permute([1, 2, 0]).detach().numpy().astype('uint8')
-            im = perfReflect(term[i:i + 1].detach(), ratio=0.02)[0].permute([1, 2, 0]).detach().numpy().astype('uint8')
+            #im = perfReflect(term[i:i + 1].detach(), ratio=0.02)[0].permute([1, 2, 0]).detach().numpy().astype('uint8')
             #im = retinex_adjust(torch.clamp(term[i], 0, 255).permute([1, 2, 0]).detach().numpy().astype('uint8'))
             matplotlib.image.imsave(rootFolder + 'pic/exoloadPlot_N_' + str(i) + '_P_' + str(j) + '.png', im)
             '''
