@@ -41,9 +41,19 @@ else:
         repeat = config['repeat']
         nMixing = config['nMixing']
         batch = config['batch']
+        try:
+            HUE = config['HUE']
+        except:
+            HUE = True
+
 
 # update batch using passing parameter
 batch = args.num
+
+if HUE:
+    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
+else:
+    lambd = lambda x: utils.rgb2ycc((x * 255).byte().float(), True).to(torch.float32).to(device)
 
 # Building the target dataset
 if target == "CIFAR":
@@ -58,7 +68,6 @@ if target == "CIFAR":
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
-    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=True, download=True, transform=trainsetTransform)
     testTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=False, download=True, transform=trainsetTransform)
@@ -76,7 +85,6 @@ elif target == "ImageNet32":
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
-    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = utils.ImageNet(root='./data/ImageNet32', train=True, download=True, transform=trainsetTransform)
     testTarget = utils.ImageNet(root='./data/ImageNet32', train=False, download=True, transform=trainsetTransform)
@@ -95,7 +103,6 @@ elif target == "ImageNet64":
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
-    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = utils.ImageNet(root='./data/ImageNet64', train=True, download=True, transform=trainsetTransform, d64=True)
     testTarget = utils.ImageNet(root='./data/ImageNet64', train=False, download=True, transform=trainsetTransform, d64=True)
@@ -252,6 +259,9 @@ def plotLoading(loader):
     rcnZ = torch.cat(augmenZ, 0)
 
     rcnSamples, _ = f.forward(rcnZ)
+
+    if not HUE:
+        rcnSamples = utils.ycc2rgb(rcnSamples, True, True).int()
 
     rcnSamples = rcnSamples.detach().reshape(int(math.log(blockLength, 2)), batch, *rcnSamples.shape[1:])
 

@@ -46,10 +46,17 @@ else:
         nMixing = config['nMixing']
         simplePrior = config['simplePrior']
         batch = config['batch']
+        try:
+            HUE = config['HUE']
+        except:
+            HUE = True
 
 IMG = Image.open(args.img)
 IMG = torch.from_numpy(np.array(IMG)).permute([2, 0, 1])
 IMG = IMG.reshape(1, *IMG.shape).float().to(device)
+
+if not HUE:
+    IMG = utils.rgb2ycc(IMG, True, True)
 
 # decide which model to load
 if args.best:
@@ -187,6 +194,9 @@ for no in reversed(range(args.depth)):
     down = torch.cat([dl, dr], -1)
     ul = torch.cat([upper, down], -2)
 
+if not HUE:
+    ul = torch.round(ul * 255)
+    ul = utils.ycc2rgb(ul, True, True).int()
 # convert zremaoin to numpy array
 zremain = ul[0].permute([1, 2, 0]).detach().cpu().numpy()
 
