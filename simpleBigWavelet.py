@@ -137,6 +137,16 @@ def back01(tensor):
     return ten
 
 
+def grayWorld(tensor):
+    if tensor.dtype is torch.float32:
+        tensor = torch.round(tensor * 255).float()
+    meanRGB = tensor.reshape(tensor.shape[0], 3, -1).mean(-1)
+    gray = meanRGB.sum(-1, keepdim=True) / 3
+    scaleRGB = gray / meanRGB
+    scaledTensor = torch.round(tensor.reshape(tensor.shape[0], 3, -1) / scaleRGB.reshape(*scaleRGB.shape, 1)).reshape(tensor.shape)
+    return torch.clamp(scaledTensor, 0, 255).int()
+
+
 def backMeanStd(tensor):
     mean = IMG.reshape(*IMG.shape[:2], -1).mean(-1).reshape(*IMG.shape[:2], 1, 1)
     std = IMG.reshape(*IMG.shape[:2], -1).std(-1).reshape(*IMG.shape[:2], 1, 1)
@@ -154,7 +164,7 @@ def batchNorm(tensor, base=1.0):
     return m(tensor).float() + base
 
 
-renormFn = lambda x: back01(batchNorm(x))
+renormFn = lambda x: back01(x)
 
 # collect parts
 ul = z
