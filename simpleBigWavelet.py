@@ -143,7 +143,7 @@ def grayWorld(tensor):
     meanRGB = tensor.reshape(tensor.shape[0], 3, -1).mean(-1)
     gray = meanRGB.sum(-1, keepdim=True) / 3
     scaleRGB = gray / meanRGB
-    scaledTensor = torch.round(tensor.reshape(tensor.shape[0], 3, -1) / scaleRGB.reshape(*scaleRGB.shape, 1)).reshape(tensor.shape)
+    scaledTensor = torch.round(tensor.reshape(tensor.shape[0], 3, -1) * scaleRGB.reshape(*scaleRGB.shape, 1)).reshape(tensor.shape)
     return torch.clamp(scaledTensor, 0, 255).int()
 
 
@@ -164,7 +164,7 @@ def batchNorm(tensor, base=1.0):
     return m(tensor).float() + base
 
 
-renormFn = lambda x: back01(x)
+renormFn = lambda x: grayWorld(back01(x))
 
 # collect parts
 ul = z
