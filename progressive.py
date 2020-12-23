@@ -24,6 +24,7 @@ parser.add_argument("-best", action='store_false', help="if load the best model"
 parser.add_argument("-epoch", type=int, default=-1, help="epoch to load")
 parser.add_argument("-exdepth", type=int, default=2, help="num of image to expand")
 parser.add_argument("-num", type=int, default=10, help="num of image to demo")
+parser.add_argument("-fix", action='store_false', help="fix color shift in exoplot")
 
 args = parser.parse_args()
 
@@ -51,6 +52,10 @@ else:
 
 # update batch using passing parameter
 batch = args.num
+
+if args.fix:
+    print("Fix color")
+    from AWB2 import color_transfer
 
 if HUE:
     lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
@@ -285,38 +290,6 @@ def plotLoading(loader):
         scaledTensor = torch.round(tensor.reshape(tensor.shape[0], 3, -1) * scaleRGB.reshape(*scaleRGB.shape, 1)).reshape(tensor.shape)
         return torch.clamp(scaledTensor, 0, 255).int()
 
-    def retinex(nimg):
-        nimg = nimg.transpose(2, 0, 1).astype(np.uint32)
-        mu_g = nimg[1].max()
-        nimg[0] = np.minimum(nimg[0]*(mu_g/float(nimg[0].max())),255)
-        nimg[2] = np.minimum(nimg[2]*(mu_g/float(nimg[2].max())),255)
-        return nimg.transpose(1, 2, 0).astype(np.uint8)
-
-    def retinex_adjust(nimg):
-        """
-        from 'Combining Gray World and Retinex Theory for Automatic White Balance in Digital Photography'
-        """
-        nimg = nimg.transpose(2, 0, 1).astype(np.uint32)
-        sum_r = np.sum(nimg[0])
-        sum_r2 = np.sum(nimg[0]**2)
-        max_r = nimg[0].max()
-        max_r2 = max_r**2
-        sum_g = np.sum(nimg[1])
-        max_g = nimg[1].max()
-        coefficient = np.linalg.solve(np.array([[sum_r2,sum_r],[max_r2,max_r]]),
-                                      np.array([sum_g,max_g]))
-        nimg[0] = np.minimum((nimg[0]**2)*coefficient[0] + nimg[0]*coefficient[1],255)
-        sum_b = np.sum(nimg[1])
-        sum_b2 = np.sum(nimg[1]**2)
-        max_b = nimg[1].max()
-        max_b2 = max_r**2
-        coefficient = np.linalg.solve(np.array([[sum_b2,sum_b],[max_b2,max_b]]),
-                                      np.array([sum_g,max_g]))
-        nimg[1] = np.minimum((nimg[1]**2)*coefficient[0] + nimg[1]*coefficient[1],255)
-        return nimg.transpose(1, 2, 0).astype(np.uint8)
-
-    def retinex_with_adjust(nimg):
-        return retinex_adjust(retinex(nimg))
 
     def perfReflect(tensor, ratio=0.1):
         assert tensor.shape[0] == 1
@@ -341,7 +314,8 @@ def plotLoading(loader):
 
     for i in range(rcnSamples.shape[1]):
         for j in range(int(math.log(blockLength, 2))):
-            im = back01(rcnSamples[j][i]).permute([1, 2, 0]).detach().numpy()
+            #im = back01(rcnSamples[j][i]).permute([1, 2, 0]).detach().numpy()
+            im = clip(rcnSamples[j][i]).permute([1, 2, 0]).detach().numpy()
             matplotlib.image.imsave(rootFolder + 'pic/proloadPlot_N_' + str(i) + '_P_' + str(j) + '.png', im)
             '''
             fig = plt.figure()
@@ -354,7 +328,10 @@ def plotLoading(loader):
 
     for i in range(batch):
         for j, term in enumerate(plotList):
-            im = back01(term[i]).permute([1, 2, 0]).detach().numpy()
+            if args.fix:
+                im = color_transfer(rcnSamples[0, i].int().detach().permute([1, 2, 0]).numpy().astype('uint8'), (back01(term[i]) * 255).permute([1, 2, 0]).detach().numpy().astype('uint8'))
+            else:
+                im = back01(term[i]).permute([1, 2, 0]).detach().numpy()
             #im = grayWorld(term[i:i + 1])[0].permute([1, 2, 0]).detach().numpy().astype('uint8')
             #im = perfReflect(term[i:i + 1].detach(), ratio=0.02)[0].permute([1, 2, 0]).detach().numpy().astype('uint8')
             #im = retinex_adjust(torch.clamp(term[i], 0, 255).permute([1, 2, 0]).detach().numpy().astype('uint8'))
