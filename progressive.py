@@ -24,7 +24,7 @@ parser.add_argument("-best", action='store_false', help="if load the best model"
 parser.add_argument("-epoch", type=int, default=-1, help="epoch to load")
 parser.add_argument("-exdepth", type=int, default=2, help="num of image to expand")
 parser.add_argument("-num", type=int, default=10, help="num of image to demo")
-parser.add_argument("-fix", action='store_false', help="fix color shift in exoplot")
+parser.add_argument("-fix", action='store_true', help="fix color shift in exoplot")
 
 args = parser.parse_args()
 
