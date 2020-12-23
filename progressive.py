@@ -315,7 +315,7 @@ def plotLoading(loader):
     for i in range(rcnSamples.shape[1]):
         for j in range(int(math.log(blockLength, 2))):
             #im = back01(rcnSamples[j][i]).permute([1, 2, 0]).detach().numpy()
-            im = clip(rcnSamples[j][i]).permute([1, 2, 0]).detach().numpy()
+            im = clip(rcnSamples[j][i]).permute([1, 2, 0]).detach().numpy().astype('uint8')
             matplotlib.image.imsave(rootFolder + 'pic/proloadPlot_N_' + str(i) + '_P_' + str(j) + '.png', im)
             '''
             fig = plt.figure()
@@ -331,7 +331,8 @@ def plotLoading(loader):
             if args.fix:
                 im = color_transfer(rcnSamples[0, i].int().detach().permute([1, 2, 0]).numpy().astype('uint8'), (back01(term[i]) * 255).permute([1, 2, 0]).detach().numpy().astype('uint8'))
             else:
-                im = back01(term[i]).permute([1, 2, 0]).detach().numpy()
+                #im = back01(term[i]).permute([1, 2, 0]).detach().numpy()
+                im = clip(term[i]).permute([1, 2, 0]).detach().numpy().astype('uint8')
             #im = grayWorld(term[i:i + 1])[0].permute([1, 2, 0]).detach().numpy().astype('uint8')
             #im = perfReflect(term[i:i + 1].detach(), ratio=0.02)[0].permute([1, 2, 0]).detach().numpy().astype('uint8')
             #im = retinex_adjust(torch.clamp(term[i], 0, 255).permute([1, 2, 0]).detach().numpy().astype('uint8'))
