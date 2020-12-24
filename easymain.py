@@ -20,6 +20,7 @@ group.add_argument("-nhidden", type=int, default=1, help="num of intermediate ch
 group.add_argument("-nMixing", type=int, default=5, help="num of mixing distributions of last sub-priors")
 group.add_argument("-simplePrior", action="store_true", help="if use simple version prior, no crossover")
 group.add_argument("-diffDetail", action="store_false", help="if use same detail prior")
+group.add_argument("-HUE", action="store_false", help="use YCbCr color scheme")
 group.add_argument("-clamp", type=float, default=-1, help="clamp of last prior's mean")
 group.add_argument("-heavy", action="store_true", help="if use different trans on different depth")
 
@@ -40,7 +41,7 @@ device = torch.device("cpu" if args.cuda < 0 else "cuda:" + str(args.cuda))
 
 # Creating save folder
 if args.folder is None:
-    rootFolder = './opt/default_easyMera_' + args.target + "_simplePrior_" + str(args.simplePrior) + "_repeat_" + str(args.repeat) + "_hchnl_" + str(args.hchnl) + "_nhidden_" + str(args.nhidden) + "_nMixing_" + str(args.nMixing) + "_sameDetail_" + str(args.diffDetail) + "_clamp_" + str(args.clamp) + "_heavy_" + str(args.heavy) + "/"
+    rootFolder = './opt/default_easyMera_' + args.target + "_YCC_" + str(args.HUE) + "_simplePrior_" + str(args.simplePrior) + "_repeat_" + str(args.repeat) + "_hchnl_" + str(args.hchnl) + "_nhidden_" + str(args.nhidden) + "_nMixing_" + str(args.nMixing) + "_sameDetail_" + str(args.diffDetail) + "_clamp_" + str(args.clamp) + "_heavy_" + str(args.heavy) + "/"
     print("No specified saving path, using", rootFolder)
 else:
     rootFolder = args.folder
@@ -66,14 +67,20 @@ if not args.load:
     clamp = args.clamp
     lr = args.lr
     heavy = args.heavy
+    HUE = args.HUE
     with open(rootFolder + "/parameter.json", "w") as f:
-        config = {'target': target, 'repeat': repeat, 'hchnl': hchnl, 'nhidden': nhidden, 'nMixing': nMixing, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr, 'simplePrior': simplePrior, 'diffDetail': diffDetail, 'clamp': clamp, 'heavy': heavy}
+        config = {'target': target, 'repeat': repeat, 'hchnl': hchnl, 'nhidden': nhidden, 'nMixing': nMixing, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr, 'simplePrior': simplePrior, 'diffDetail': diffDetail, 'clamp': clamp, 'heavy': heavy, 'HUE': HUE}
         json.dump(config, f)
 else:
     # load saved parameters, and decoding them to mem
     with open(rootFolder + "/parameter.json", 'r') as f:
         config = json.load(f)
         locals().update(config)
+
+if HUE:
+    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
+else:
+    lambd = lambda x: utils.rgb2ycc((x * 255).byte().float(), True).to(torch.float32).to(device)
 
 # Building the target dataset
 if target == "CIFAR":
@@ -88,7 +95,6 @@ if target == "CIFAR":
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
-    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=True, download=True, transform=trainsetTransform)
     testTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=False, download=True, transform=trainsetTransform)
@@ -106,7 +112,6 @@ elif target == "ImageNet32":
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
-    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = utils.ImageNet(root='./data/ImageNet32', train=True, download=True, transform=trainsetTransform)
     testTarget = utils.ImageNet(root='./data/ImageNet32', train=False, download=True, transform=trainsetTransform)
@@ -125,7 +130,6 @@ elif target == "ImageNet64":
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
-    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = utils.ImageNet(root='./data/ImageNet64', train=True, download=True, transform=trainsetTransform, d64=True)
     testTarget = utils.ImageNet(root='./data/ImageNet64', train=False, download=True, transform=trainsetTransform, d64=True)

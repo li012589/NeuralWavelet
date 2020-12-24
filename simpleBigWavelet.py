@@ -11,6 +11,7 @@ from torch import nn
 from encoder import rans, coder
 from utils import cdfDiscreteLogitstic, cdfMixDiscreteLogistic
 from matplotlib import pyplot as plt
+import matplotlib
 
 
 parser = argparse.ArgumentParser(description="")
@@ -19,6 +20,7 @@ parser.add_argument("-folder", default=None, help="Path to load the trained mode
 parser.add_argument("-cuda", type=int, default=-1, help="Which device to use with -1 standing for CPU, number bigger than -1 is N.O. of GPU.")
 parser.add_argument("-depth", type=int, default=2, help="wavelet depth")
 parser.add_argument("-best", action='store_false', help="if load the best model")
+parser.add_argument("-epoch", type=int, default=-1, help="epoch to load")
 parser.add_argument("-img", default=None, help="the img path")
 
 args = parser.parse_args()
@@ -45,16 +47,25 @@ else:
         nMixing = config['nMixing']
         simplePrior = config['simplePrior']
         batch = config['batch']
+        try:
+            HUE = config['HUE']
+        except:
+            HUE = True
 
 IMG = Image.open(args.img)
 IMG = torch.from_numpy(np.array(IMG)).permute([2, 0, 1])
 IMG = IMG.reshape(1, *IMG.shape).float().to(device)
 
+if not HUE:
+    IMG = utils.rgb2ycc(IMG, True, True)
+
 # decide which model to load
 if args.best:
     name = max(glob.iglob(os.path.join(rootFolder, '*.saving')), key=os.path.getctime)
-else:
+elif args.epoch == -1:
     name = max(glob.iglob(os.path.join(rootFolder, 'savings', '*.saving')), key=os.path.getctime)
+else:
+    name = max(glob.iglob(os.path.join(rootFolder, 'savings', 'SimpleMERA_epoch_' + str(args.epoch) + '.saving')), key=os.path.getctime)
 
 # load the model
 print("load saving at " + name)
@@ -127,6 +138,16 @@ def back01(tensor):
     return ten
 
 
+def grayWorld(tensor):
+    if tensor.dtype is torch.float32:
+        tensor = torch.round(tensor * 255).float()
+    meanRGB = tensor.reshape(tensor.shape[0], 3, -1).mean(-1)
+    gray = meanRGB.sum(-1, keepdim=True) / 3
+    scaleRGB = gray / meanRGB
+    scaledTensor = torch.round(tensor.reshape(tensor.shape[0], 3, -1) * scaleRGB.reshape(*scaleRGB.shape, 1)).reshape(tensor.shape)
+    return torch.clamp(scaledTensor, 0, 255).int()
+
+
 def backMeanStd(tensor):
     mean = IMG.reshape(*IMG.shape[:2], -1).mean(-1).reshape(*IMG.shape[:2], 1, 1)
     std = IMG.reshape(*IMG.shape[:2], -1).std(-1).reshape(*IMG.shape[:2], 1, 1)
@@ -144,7 +165,8 @@ def batchNorm(tensor, base=1.0):
     return m(tensor).float() + base
 
 
-renormFn = lambda x: back01(batchNorm(x))
+#renormFn = lambda x: grayWorld(back01(x))
+renormFn = lambda x: back01(x)
 
 # collect parts
 ul = z
@@ -184,14 +206,21 @@ for no in reversed(range(args.depth)):
     down = torch.cat([dl, dr], -1)
     ul = torch.cat([upper, down], -2)
 
+if not HUE:
+    ul = torch.round(ul * 255)
+    ul = utils.ycc2rgb(ul, True, True).int()
 # convert zremaoin to numpy array
 zremain = ul[0].permute([1, 2, 0]).detach().cpu().numpy()
 
+
+matplotlib.image.imsave(rootFolder + 'pic/BigWavelet.png', zremain)
+'''
 waveletPlot = plt.figure(figsize=(8, 8))
 waveletAx = waveletPlot.add_subplot(111)
 waveletAx.imshow(zremain)
 plt.axis('off')
 plt.savefig(rootFolder + 'pic/BigWavelet.pdf', bbox_inches="tight", pad_inches=0)
 plt.close()
+'''
 
 

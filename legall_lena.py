@@ -41,6 +41,11 @@ else:
         nMixing = config['nMixing']
         simplePrior = config['simplePrior']
         batch = config['batch']
+        try:
+            HUE = config['HUE']
+        except:
+            HUE = True
+
 
 # decide which model to load
 if args.best:
@@ -52,7 +57,17 @@ if args.img != 'target':
     IMG = Image.open(args.img)
     IMG = torch.from_numpy(np.array(IMG)).permute([2, 0, 1])
     IMG = IMG.reshape(1, *IMG.shape).float()
+
+    if not HUE:
+        IMG = utils.rgb2ycc(IMG, True, True)
+
 else:
+
+    if HUE:
+        lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
+    else:
+        lambd = lambda x: utils.rgb2ycc((x * 255).byte().float(), True).to(torch.float32).to(device)
+
     if target == "CIFAR":
         # Define dimensions
         targetSize = [3, 32, 32]
@@ -65,7 +80,6 @@ else:
         rounding = utils.roundingWidentityGradient
 
         # Building train & test datasets
-        lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
         trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
         trainTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=True, download=True, transform=trainsetTransform)
         testTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=False, download=True, transform=trainsetTransform)
@@ -83,7 +97,6 @@ else:
         rounding = utils.roundingWidentityGradient
 
         # Building train & test datasets
-        lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
         trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
         trainTarget = utils.ImageNet(root='./data/ImageNet32', train=True, download=True, transform=trainsetTransform)
         testTarget = utils.ImageNet(root='./data/ImageNet32', train=False, download=True, transform=trainsetTransform)
@@ -102,7 +115,6 @@ else:
         rounding = utils.roundingWidentityGradient
 
         # Building train & test datasets
-        lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
         trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
         trainTarget = utils.ImageNet(root='./data/ImageNet64', train=True, download=True, transform=trainsetTransform, d64=True)
         testTarget = utils.ImageNet(root='./data/ImageNet64', train=False, download=True, transform=trainsetTransform, d64=True)
@@ -254,6 +266,10 @@ for no in reversed(range(args.deltaDepth)):
 
 lowIMG, _ = f.forward(lowul)
 highIMG, _ = f.forward(highul)
+
+if not HUE:
+    lowIMG = utils.ycc2rgb(lowIMG, True, True)
+    highIMG = utils.ycc2rgb(highIMG, True, True)
 
 plt.figure()
 plt.imshow(IMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy())

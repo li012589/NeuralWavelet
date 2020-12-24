@@ -41,6 +41,11 @@ else:
         nMixing = config['nMixing']
         simplePrior = config['simplePrior']
         batch = config['batch']
+        try:
+            HUE = config['HUE']
+        except:
+            HUE = True
+
 
 batch = 1
 
@@ -51,6 +56,11 @@ if args.best:
     name = max(glob.iglob(os.path.join(rootFolder, '*.saving')), key=os.path.getctime)
 else:
     name = max(glob.iglob(os.path.join(rootFolder, 'savings', '*.saving')), key=os.path.getctime)
+
+if HUE:
+    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
+else:
+    lambd = lambda x: utils.rgb2ycc((x * 255).byte().float(), True).to(torch.float32).to(device)
 
 if target == "CIFAR":
     # Define dimensions
@@ -64,7 +74,6 @@ if target == "CIFAR":
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
-    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=True, download=True, transform=trainsetTransform)
     testTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=False, download=True, transform=trainsetTransform)
@@ -82,7 +91,6 @@ elif target == "ImageNet32":
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
-    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = utils.ImageNet(root='./data/ImageNet32', train=True, download=True, transform=trainsetTransform)
     testTarget = utils.ImageNet(root='./data/ImageNet32', train=False, download=True, transform=trainsetTransform)
@@ -101,7 +109,6 @@ elif target == "ImageNet64":
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
-    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = utils.ImageNet(root='./data/ImageNet64', train=True, download=True, transform=trainsetTransform, d64=True)
     testTarget = utils.ImageNet(root='./data/ImageNet64', train=False, download=True, transform=trainsetTransform, d64=True)

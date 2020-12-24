@@ -43,12 +43,23 @@ else:
         hchnl = config['hchnl']
         nMixing = config['nMixing']
         batch = config['batch']
+        try:
+            HUE = config['HUE']
+        except:
+            HUE = True
 
 if args.batch != -1:
     batch = args.batch
 
 if args.target != 'original':
     target = args.target
+
+if HUE:
+    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
+else:
+    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
+    #lambd = lambda x: utils.rgb2ycc((x * 255).byte().float(), True).to(torch.float32).to(device)
+
 # Building the target dataset
 if target == "CIFAR":
     # Define dimensions
@@ -62,7 +73,6 @@ if target == "CIFAR":
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
-    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=True, download=True, transform=trainsetTransform)
     testTarget = torchvision.datasets.CIFAR10(root='./data/cifar', train=False, download=True, transform=trainsetTransform)
@@ -80,7 +90,6 @@ elif target == "ImageNet32":
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
-    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = utils.ImageNet(root='./data/ImageNet32', train=True, download=True, transform=trainsetTransform)
     testTarget = utils.ImageNet(root='./data/ImageNet32', train=False, download=True, transform=trainsetTransform)
@@ -99,7 +108,6 @@ elif target == "ImageNet64":
     rounding = utils.roundingWidentityGradient
 
     # Building train & test datasets
-    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
     trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
     trainTarget = utils.ImageNet(root='./data/ImageNet64', train=True, download=True, transform=trainsetTransform, d64=True)
     testTarget = utils.ImageNet(root='./data/ImageNet64', train=False, download=True, transform=trainsetTransform, d64=True)
@@ -242,9 +250,17 @@ def testBPD(loader, earlyStop=-1):
     theoryBPD = []
     ERR = []
 
+    if not HUE:
+        yccERR = []
+
     count = 0
     with torch.no_grad():
-        for samples, _ in loader:
+        for RGBsamples, _ in loader:
+            if HUE:
+                samples = RGBsamples
+            else:
+                samples = utils.rgb2ycc(RGBsamples, True, True)
+
             count += 1
             z, _ = f.inverse(samples)
 
@@ -280,6 +296,9 @@ def testBPD(loader, earlyStop=-1):
 
             rcnSamples, _ = f.forward(rcnZ.float())
 
+            if not HUE:
+                yccERR.append(torch.abs(RGBsamples - utils.ycc2rgb(rcnSamples, True, True)).mean().item())
+
             ERR.append(torch.abs(samples - rcnSamples).sum().item())
 
             if count >= earlyStop and earlyStop > 0:
@@ -289,8 +308,15 @@ def testBPD(loader, earlyStop=-1):
     theoryBPD = np.array(theoryBPD)
     ERR = np.array(ERR)
 
-    print("===========================SUMMARY==================================")
-    print("Actual Mean BPD:", actualBPD.mean(), "Theory Mean BPD:", theoryBPD.mean(), "Mean Error:", ERR.mean())
+    if not HUE:
+        yccERR = np.array(yccERR)
+
+    if HUE:
+        print("===========================SUMMARY==================================")
+        print("Actual Mean BPD:", actualBPD.mean(), "Theory Mean BPD:", theoryBPD.mean(), "Mean Error:", ERR.mean())
+    else:
+        print("===========================SUMMARY==================================")
+        print("Actual Mean BPD:", actualBPD.mean(), "Theory Mean BPD:", theoryBPD.mean(), "Mean Error:", ERR.mean(), "ycc Mean Error:", yccERR.mean())
 
     return actualBPD, theoryBPD, ERR
 
