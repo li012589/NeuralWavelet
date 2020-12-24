@@ -25,6 +25,7 @@ parser.add_argument("-epoch", type=int, default=-1, help="epoch to load")
 parser.add_argument("-exdepth", type=int, default=2, help="num of image to expand")
 parser.add_argument("-num", type=int, default=10, help="num of image to demo")
 parser.add_argument("-fix", action='store_true', help="fix color shift in exoplot")
+parser.add_argument('-target', type=str, default='original', choices=['original', 'CIFAR', 'ImageNet32', 'ImageNet64', 'MNIST'], metavar='DATASET', help='Dataset choice.')
 
 args = parser.parse_args()
 
@@ -61,6 +62,9 @@ if HUE:
     lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
 else:
     lambd = lambda x: utils.rgb2ycc((x * 255).byte().float(), True).to(torch.float32).to(device)
+
+if args.target != 'original':
+    target = args.target
 
 # Building the target dataset
 if target == "CIFAR":

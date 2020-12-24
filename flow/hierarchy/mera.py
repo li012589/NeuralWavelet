@@ -250,22 +250,27 @@ def reform(tensor):
 
 
 class SimpleMERA(Flow):
-    def __init__(self, length, layerList, meanNNlist=None, scaleNNlist=None, repeat=1, depth=None, nMixing=5, decimal=None, rounding=None, clamp=None, sameDetail=True, name="SimpleMERA"):
+    def __init__(self, length, layerList, meanNNlist=None, scaleNNlist=None, repeat=1, depth=None, nMixing=5, decimal=None, rounding=None, clamp=None, sameDetail=True, compatible=False, name="SimpleMERA"):
         kernelSize = 2
         if depth is None or depth == -1:
             depth = int(math.log(length, kernelSize))
 
         if meanNNlist is None or scaleNNlist is None:
-            prior = source.SimpleHierarchyPrior(length, nMixing, decimal, rounding, clamp=clamp, sameDetail=sameDetail)
+            prior = source.SimpleHierarchyPrior(length, nMixing, decimal, rounding, clamp=clamp, sameDetail=sameDetail, compatible=compatible)
         else:
             lastPrior = source.MixtureDiscreteLogistic([3, 1, 4], nMixing, decimal, rounding, clamp=clamp)
-            prior = source.PassiveHierarchyPrior(length, lastPrior, decimal=decimal, rounding=rounding)
+            prior = source.PassiveHierarchyPrior(length, lastPrior, decimal=decimal, rounding=rounding, compatible=compatible)
         super(SimpleMERA, self).__init__(prior, name)
 
         self.decimal = decimal
         self.rounding = rounding
         self.repeat = repeat
         self.depth = depth
+        self.compatible = compatible
+        if compatible:
+            assert len(layerList) == 4 * repeat * depth
+            assert len(meanNNlist) == depth
+            assert len(scaleNNlist) == depth
 
         if len(layerList) != 4 * repeat * depth:
             layerList = layerList * depth
@@ -289,7 +294,11 @@ class SimpleMERA(Flow):
             self.scaleNNlist = None
 
     def inverse(self, x):
-        depth = self.depth
+        if self.compatible:
+            depth = int(math.log(x.shape[-1], 2))
+        else:
+            depth = self.depth
+
         self.meanList = []
         self.scaleList = []
 
@@ -341,7 +350,10 @@ class SimpleMERA(Flow):
         return ul, ul.new_zeros(ul.shape[0])
 
     def forward(self, z):
-        depth = self.depth
+        if self.compatible:
+            depth = int(math.log(z.shape[-1], 2))
+        else:
+            depth = self.depth
 
         ul = z
         UR = []

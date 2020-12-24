@@ -55,13 +55,13 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
                 countList.append((zeroCounter, nonCounter))
             optimizer.step()
 
-            trainLoss.append(_loss.detach().cpu().item())
+            trainLoss.append(_loss.detach().cpu().item() / (np.prod(samples.shape[1:]) * np.log(2.)))
         if testGrad:
             print("grad test: (zero, none):", countList)
         trainLoss = np.array(trainLoss)
         trainTime = time.time() - t_start
         LOSS.append(trainLoss.mean())
-        meanTrainBpd = trainLoss.mean() / (np.prod(samples.shape[1:]) * np.log(2.))
+        meanTrainBpd = trainLoss.mean()
         trainBPD.append(meanTrainBpd)
 
         # vaildation
@@ -70,10 +70,10 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
             with torch.no_grad():
                 lossRaw = -flow.logProbability(samples)
                 _loss = lossRaw.mean()
-            testLoss.append(_loss.detach().cpu().item())
+            testLoss.append(_loss.detach().cpu().item() / (np.prod(samples.shape[1:]) * np.log(2.)))
         testLoss = np.array(testLoss)
         VALLOSS.append(testLoss.mean())
-        meanTestBpd = testLoss.mean() / (np.prod(samples.shape[1:]) * np.log(2.))
+        meanTestBpd = testLoss.mean()
         testBPD.append(meanTestBpd)
 
 
