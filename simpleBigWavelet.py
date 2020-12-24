@@ -11,6 +11,7 @@ from torch import nn
 from encoder import rans, coder
 from utils import cdfDiscreteLogitstic, cdfMixDiscreteLogistic
 from matplotlib import pyplot as plt
+import matplotlib
 
 
 parser = argparse.ArgumentParser(description="")
@@ -211,11 +212,15 @@ if not HUE:
 # convert zremaoin to numpy array
 zremain = ul[0].permute([1, 2, 0]).detach().cpu().numpy()
 
+
+matplotlib.image.imsave(rootFolder + 'pic/BigWavelet.png', zremain)
+'''
 waveletPlot = plt.figure(figsize=(8, 8))
 waveletAx = waveletPlot.add_subplot(111)
 waveletAx.imshow(zremain)
 plt.axis('off')
 plt.savefig(rootFolder + 'pic/BigWavelet.pdf', bbox_inches="tight", pad_inches=0)
 plt.close()
+'''
 
 
