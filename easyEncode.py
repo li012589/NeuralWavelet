@@ -171,7 +171,10 @@ if args.target != 'original':
     elif '1to2Mera' in name:
         f = flow.OneToTwoMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
 
-    f.prior = prior
+    if 'simplePrior_False' in name:
+        f.prior.lastPrior = prior.lastPrior
+    else:
+        f.prior.priorList = prior.priorList
 
 tmpLine = targetSize[-1] ** 2 // 4
 shapeList = []
@@ -297,9 +300,10 @@ def testBPD(loader, earlyStop=-1):
             rcnSamples, _ = f.forward(rcnZ.float())
 
             if not HUE:
-                yccERR.append(torch.abs(RGBsamples - utils.ycc2rgb(rcnSamples, True, True)).mean().item())
-
-            ERR.append(torch.abs(samples - rcnSamples).sum().item())
+                yccERR.append(torch.abs(RGBsamples - utils.ycc2rgb(rcnSamples, True, True).contiguous()).mean().item())
+                ERR.append(torch.abs(samples.contiguous() - rcnSamples).sum().item())
+            else:
+                ERR.append(torch.abs(samples - rcnSamples).sum().item())
 
             if count >= earlyStop and earlyStop > 0:
                 break
