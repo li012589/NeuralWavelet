@@ -213,7 +213,7 @@ if not HUE:
 zremain = ul[0].permute([1, 2, 0]).detach().cpu().numpy()
 
 
-matplotlib.image.imsave(rootFolder + 'pic/BigWavelet.png', zremain.astype('uint8'))
+matplotlib.image.imsave(rootFolder + 'pic/BigWavelet.png', (zremain * 255).astype('uint8'))
 '''
 waveletPlot = plt.figure(figsize=(8, 8))
 waveletAx = waveletPlot.add_subplot(111)
