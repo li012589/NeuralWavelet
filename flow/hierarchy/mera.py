@@ -455,21 +455,21 @@ class SimpleMERA(Flow):
             dr = DR[no]
             for i in reversed(range(4 * self.repeat)):
                 if i % 4 == 0:
-                    tmp = torch.cat([ul, dl, dr], 1)
-                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
-                    ur = ur - tmp
-                elif i % 4 == 1:
-                    tmp = torch.cat([ul, ur, dr], 1)
-                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
-                    dl = dl - tmp
-                elif i % 4 == 2:
-                    tmp = torch.cat([ul, ur, dl], 1)
-                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
-                    dr = dr - tmp
-                else:
                     tmp = torch.cat([ur, dl, dr], 1)
                     tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     ul = ul - tmp
+                elif i % 4 == 1:
+                    tmp = torch.cat([ul, dl, dr], 1)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    ur = ur - tmp
+                elif i % 4 == 2:
+                    tmp = torch.cat([ul, ur, dr], 1)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    dl = dl - tmp
+                else:
+                    tmp = torch.cat([ul, ur, dl], 1)
+                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    dr = dr - tmp
 
             ur = ur.reshape(*ul.shape, 1)
             dl = dl.reshape(*ul.shape, 1)
@@ -494,21 +494,21 @@ class SimpleMERA(Flow):
                 dr = details[:, :, :, 2].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous()
                 for i in reversed(range(4 * self.repeat)):
                     if i % 4 == 0:
-                        tmp = torch.cat([ul, dl, dr], 1)
-                        tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
-                        ur = ur - tmp
-                    elif i % 4 == 1:
-                        tmp = torch.cat([ul, ur, dr], 1)
-                        tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
-                        dl = dl - tmp
-                    elif i % 4 == 2:
-                        tmp = torch.cat([ul, ur, dl], 1)
-                        tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
-                        dr = dr - tmp
-                    else:
                         tmp = torch.cat([ur, dl, dr], 1)
                         tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                         ul = ul - tmp
+                    elif i % 4 == 1:
+                        tmp = torch.cat([ul, dl, dr], 1)
+                        tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                        ur = ur - tmp
+                    elif i % 4 == 2:
+                        tmp = torch.cat([ul, ur, dr], 1)
+                        tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                        dl = dl - tmp
+                    else:
+                        tmp = torch.cat([ul, ur, dl], 1)
+                        tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                        dr = dr - tmp
 
                 ur = ur.reshape(*ul.shape, 1)
                 dl = dl.reshape(*ul.shape, 1)
