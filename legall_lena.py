@@ -11,6 +11,7 @@ from PIL import Image
 
 from matplotlib import pyplot as plt
 from matplotlib import cm
+import matplotlib
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
 parser = argparse.ArgumentParser(description="")
@@ -271,12 +272,24 @@ if not HUE:
     lowIMG = utils.ycc2rgb(lowIMG, True, True)
     highIMG = utils.ycc2rgb(highIMG, True, True)
 
+matplotlib.image.imsave(rootFolder + 'pic/original.png', IMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy().astype('uint8'))
+matplotlib.image.imsave(rootFolder + 'pic/low.png', (back01(lowIMG) * 255).int().reshape(targetSize).permute([1, 2, 0]).detach().numpy().astype('uint8'))
+matplotlib.image.imsave(rootFolder + 'pic/high.png', (back01(highIMG) * 255).int().reshape(targetSize).permute([1, 2, 0]).detach().numpy().astype('uint8'))
+
+'''
 plt.figure()
 plt.imshow(IMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy())
+plt.axis('off')
+plt.savefig(rootFolder + 'pic/original.png', bbox_inches="tight", pad_inches=0)
 plt.figure()
 plt.imshow(lowIMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy())
+plt.axis('off')
+plt.savefig(rootFolder + 'pic/low.png', bbox_inches="tight", pad_inches=0)
 plt.figure()
 plt.imshow(highIMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy())
+plt.axis('off')
+plt.savefig(rootFolder + 'pic/high.png', bbox_inches="tight", pad_inches=0)
+'''
 
 ff = fftplot(IMG.reshape(IMG.shape[1:]).permute([1, 2, 0]).detach().numpy())
 lowff = fftplot(lowIMG.reshape(lowIMG.shape[1:]).permute([1, 2, 0]).detach().numpy())
@@ -297,20 +310,39 @@ X = np.arange(0, blockLength, 1)
 Y = np.arange(0, blockLength, 1)
 X, Y = np.meshgrid(X, Y)
 
+plt.rc('font', size=12)
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 surf = ax.plot_surface(X, Y, ff, cmap=cm.coolwarm, linewidth=0, antialiased=False)
 ax.view_init(elev=15., azim=-75)
+plt.xticks([0, 16, 32, 46, 64], [-32, -16, 0, 16, 32])
+plt.yticks([0, 16, 32, 46, 64], [-32, -16, 0, 16, 32])
+
+#ax.set_zlabel('FFT_2D', fontsize=10)
+
+plt.savefig(rootFolder + 'pic/originalFFT.pdf', bbox_inches="tight", pad_inches=0, dpi=300)
 
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 surf = ax.plot_surface(X, Y, lowff, cmap=cm.coolwarm, linewidth=0, antialiased=False)
 ax.view_init(elev=15., azim=-75)
+plt.xticks([0, 16, 32, 46, 64], [-32, -16, 0, 16, 32])
+plt.yticks([0, 16, 32, 46, 64], [-32, -16, 0, 16, 32])
+
+#ax.set_zlabel('FFT_2D', fontsize=10)
+
+plt.savefig(rootFolder + 'pic/lowFFT.pdf', bbox_inches="tight", pad_inches=0, dpi=300)
 
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 surf = ax.plot_surface(X, Y, highff, cmap=cm.coolwarm, linewidth=0, antialiased=False)
 ax.view_init(elev=15., azim=-75)
+plt.xticks([0, 16, 32, 46, 64], [-32, -16, 0, 16, 32])
+plt.yticks([0, 16, 32, 46, 64], [-32, -16, 0, 16, 32])
+
+#ax.set_zlabel('FFT_2D', fontsize=10)
+
+plt.savefig(rootFolder + 'pic/highFFT.pdf', bbox_inches="tight", pad_inches=0, dpi=300)
 
 # Customize the z axis.
 #ax.set_zlim(-1.01, 1.01)
@@ -320,10 +352,9 @@ ax.view_init(elev=15., azim=-75)
 # Add a color bar which maps values to colors.
 #fig.colorbar(surf, shrink=0.5, aspect=5)
 
-plt.show()
+'''
 import pdb
 pdb.set_trace()
-'''
 for no in reversed(range(args.depth)):
 
     ur = UR[no]

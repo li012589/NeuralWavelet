@@ -232,6 +232,11 @@ grad = utils.jacobian(y, img)
 H = grad[0, :targetSize[-1], :targetSize[-1]]
 
 plt.imshow(H.detach())
+plt.axis('off')
+plt.savefig(rootFolder + 'pic/grad.png', bbox_inches="tight", pad_inches=0)
+
+plt.rc('font', size=14)
+plt.axis('on')
 
 deltaexp = np.exp((np.arange(targetSize[-1]) * 1j * step * np.pi))
 mod = [np.exp((np.arange(targetSize[-1]) * 1j * 0 * np.pi))]
@@ -241,6 +246,11 @@ for n in range(int(1 / step)):
 
 mod = np.vstack(mod)
 
+import matplotlib as mpl
+
+mpl.rcParams['axes.spines.right'] = False
+mpl.rcParams['axes.spines.top'] = False
+
 plt.figure()
 for no in range(targetSize[-1] // 2):
 
@@ -248,6 +258,10 @@ for no in range(targetSize[-1] // 2):
     ph = np.abs(mod.dot(h))
 
     plt.plot(ph)
+plt.xlabel(r'$\omega$', fontsize=16)
+plt.xticks([0, len(ph) / 2, len(ph)], [r'$0$', r'$\frac{\pi}{2}$', r'$\pi$'])
+plt.ylabel(r'$|H(e^{i\omega})|$', fontsize=16)
+plt.savefig(rootFolder + 'pic/lowH.pdf', bbox_inches="tight", pad_inches=0, dpi=300)
 
 plt.figure()
 for no in range(targetSize[-1] // 2, targetSize[-1]):
@@ -256,6 +270,9 @@ for no in range(targetSize[-1] // 2, targetSize[-1]):
     ph = np.abs(mod.dot(h))
 
     plt.plot(ph)
+plt.xlabel(r'$\omega$', fontsize=16)
+plt.xticks([0, len(ph) / 2, len(ph)], [r'$0$', r'$\frac{\pi}{2}$', r'$\pi$'])
+plt.ylabel(r'$|H(e^{i\omega})|$', fontsize=16)
+plt.savefig(rootFolder + 'pic/highH.pdf', bbox_inches="tight", pad_inches=0, dpi=300)
 
-plt.show()
 
