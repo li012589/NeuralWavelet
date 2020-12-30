@@ -62,6 +62,9 @@ if HUE:
 else:
     lambd = lambda x: utils.rgb2ycc((x * 255).byte().float(), True).to(torch.float32).to(device)
 
+if args.target != 'original':
+    target = args.target
+
 if target == "CIFAR":
     # Define dimensions
     targetSize = [3, 32, 32]
@@ -169,9 +172,9 @@ if args.target != 'original':
         prior.priorList = torch.nn.ModuleList([prior.priorList[0] for _ in range(int(math.log(targetSize[-1], 2)) - 1)] + [prior.priorList[-1]])
     # Building MERA mode
     if 'easyMera' in name:
-        f = flow.SimpleMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+        f = flow.SimpleMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, 1, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
     elif '1to2Mera' in name:
-        f = flow.OneToTwoMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, None, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
+        f = flow.OneToTwoMERA(blockLength, layerList, meanNNlist, scaleNNlist, repeat, 1, nMixing, decimal=decimal, rounding=utils.roundingWidentityGradient).to(device)
 
     f.prior = prior
 
@@ -203,7 +206,7 @@ ul = z
 UR = []
 DL = []
 DR = []
-for _ in range(depth):
+for _ in range(1):
     _x = im2grp(ul)
     ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
     ur = _x[:, :, :, 1].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
@@ -215,7 +218,7 @@ for _ in range(depth):
 
 ul = renormFn(ul)
 
-for no in reversed(range(depth)):
+for no in reversed(range(1)):
 
     ur = UR[no]
     dl = DL[no]
@@ -238,6 +241,11 @@ plt.savefig(rootFolder + 'pic/grad.png', bbox_inches="tight", pad_inches=0)
 plt.rc('font', size=14)
 plt.axis('on')
 
+colormap = plt.cm.Spectral
+colormap = plt.cm.nipy_spectral
+
+from cycler import cycler
+
 deltaexp = np.exp((np.arange(targetSize[-1]) * 1j * step * np.pi))
 mod = [np.exp((np.arange(targetSize[-1]) * 1j * 0 * np.pi))]
 for n in range(int(1 / step)):
@@ -251,7 +259,9 @@ import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
 
-plt.figure()
+fig = plt.figure()
+ax = fig.gca()
+ax.set_prop_cycle(cycler('color', [colormap(i) for i in np.linspace(0, 1, targetSize[-1] // 2)]))
 for no in range(targetSize[-1] // 2):
 
     h = H[no, :].detach().numpy()
@@ -263,7 +273,9 @@ plt.xticks([0, len(ph) / 2, len(ph)], [r'$0$', r'$\frac{\pi}{2}$', r'$\pi$'])
 plt.ylabel(r'$|H(e^{i\omega})|$', fontsize=16)
 plt.savefig(rootFolder + 'pic/lowH.pdf', bbox_inches="tight", pad_inches=0, dpi=300)
 
-plt.figure()
+fig = plt.figure()
+ax = fig.gca()
+ax.set_prop_cycle(cycler('color', [colormap(i) for i in np.linspace(0, 1, targetSize[-1] // 2)]))
 for no in range(targetSize[-1] // 2, targetSize[-1]):
 
     h = H[no, :].detach().numpy()
