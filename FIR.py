@@ -13,6 +13,8 @@ from matplotlib import pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
+#torch.manual_seed(42)
+
 parser = argparse.ArgumentParser(description="")
 
 parser.add_argument("-folder", default=None, help="Path to load the trained model")
@@ -246,8 +248,8 @@ colormap = plt.cm.nipy_spectral
 
 from cycler import cycler
 
-deltaexp = np.exp((np.arange(targetSize[-1]) * 1j * step * np.pi))
-mod = [np.exp((np.arange(targetSize[-1]) * 1j * 0 * np.pi))]
+deltaexp = np.exp((np.arange(targetSize[-1]) * -1j * step * np.pi))
+mod = [np.exp((np.arange(targetSize[-1]) * -1j * 0 * np.pi))]
 for n in range(int(1 / step)):
     _mod = mod[-1] * deltaexp
     mod.append(_mod)
