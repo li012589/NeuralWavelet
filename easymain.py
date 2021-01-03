@@ -29,6 +29,7 @@ group.add_argument("-epoch", type=int, default=400, help="num of epoches to trai
 group.add_argument("-batch", type=int, default=200, help="batch size")
 group.add_argument("-savePeriod", type=int, default=10, help="save after how many steps")
 group.add_argument("-lr", type=float, default=0.001, help="learning rate")
+group.add_argument("-decay", type=float, default=0.99, help="learning rate")
 
 group = parser.add_argument_group("Etc")
 group.add_argument("-folder", default=None, help="Path to save")
@@ -225,7 +226,7 @@ def plotfn(f, train, test, LOSS, VALLOSS):
     plt.close()
 
 # Training
-f = train.forwardKLD(f, targetTrainLoader, targetTestLoader, epoch, lr, savePeriod, rootFolder, plotfn=plotfn)
+f = train.forwardKLD(f, targetTrainLoader, targetTestLoader, epoch, lr, savePeriod, rootFolder, plotfn=plotfn, lr_decay=args.decay)
 
 # Pasuse
 import pdb
