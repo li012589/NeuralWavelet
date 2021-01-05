@@ -401,7 +401,11 @@ class SimpleMERA(Flow):
 
         return ul, ul.new_zeros(ul.shape[0])
 
-    def inference(self, z, endDepth, startDepth=None, sample=False, logbase=-2):
+    def inference(self, z, endDepth, startDepth=None, sample=False, logbase=-2, round=False):
+        if round:
+            rounding = self.rounding
+        else:
+            rounding = lambda x: x
         assert self.layerList[0] is self.layerList[4 * self.repeat]
         _depth = int(math.log(z.shape[-1], 2))
         if startDepth is not None:
@@ -438,7 +442,7 @@ class SimpleMERA(Flow):
                 if sample:
                     details = utils.sampleDiscreteLogistic([z.shape[0], 3, _shapeList[no - startDepth], 3], self.prior.priorList[0].mean, self.prior.priorList[0].scale + logbase, decimal=self.decimal)
                 else:
-                    details = self.rounding(self.decimal.forward_(self.prior.priorList[0].mean.reshape(1, 3, 1, 3).repeat(z.shape[0], 1, _shapeList[no - startDepth], 1)))
+                    details = rounding(self.decimal.forward_(self.prior.priorList[0].mean.reshape(1, 3, 1, 3).repeat(z.shape[0], 1, _shapeList[no - startDepth], 1)))
                 _UR.append(details[:, :, :, 0].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous())
                 _DL.append(details[:, :, :, 1].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous())
                 _DR.append(details[:, :, :, 2].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous())
@@ -456,19 +460,19 @@ class SimpleMERA(Flow):
             for i in reversed(range(4 * self.repeat)):
                 if i % 4 == 0:
                     tmp = torch.cat([ur, dl, dr], 1)
-                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     ul = ul - tmp
                 elif i % 4 == 1:
                     tmp = torch.cat([ul, dl, dr], 1)
-                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     ur = ur - tmp
                 elif i % 4 == 2:
                     tmp = torch.cat([ul, ur, dr], 1)
-                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     dl = dl - tmp
                 else:
                     tmp = torch.cat([ul, ur, dl], 1)
-                    tmp = self.rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                    tmp = rounding(self.layerList[no * 4 * self.repeat + i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                     dr = dr - tmp
 
             ur = ur.reshape(*ul.shape, 1)
@@ -488,26 +492,26 @@ class SimpleMERA(Flow):
                     scale = reform(self.scaleNNlist[0](self.decimal.inverse_(ul))).contiguous()
                     details = utils.sampleDiscreteLogistic(mean.shape, mean, scale + logbase, decimal=self.decimal)
                 else:
-                    details = self.rounding(self.decimal.forward_(mean))
+                    details = rounding(self.decimal.forward_(mean))
                 ur = details[:, :, :, 0].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous()
                 dl = details[:, :, :, 1].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous()
                 dr = details[:, :, :, 2].reshape(*details.shape[:2], int(details.shape[2] ** 0.5), int(details.shape[2] ** 0.5)).contiguous()
                 for i in reversed(range(4 * self.repeat)):
                     if i % 4 == 0:
                         tmp = torch.cat([ur, dl, dr], 1)
-                        tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                        tmp = rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                         ul = ul - tmp
                     elif i % 4 == 1:
                         tmp = torch.cat([ul, dl, dr], 1)
-                        tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                        tmp = rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                         ur = ur - tmp
                     elif i % 4 == 2:
                         tmp = torch.cat([ul, ur, dr], 1)
-                        tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                        tmp = rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                         dl = dl - tmp
                     else:
                         tmp = torch.cat([ul, ur, dl], 1)
-                        tmp = self.rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
+                        tmp = rounding(self.layerList[i](self.decimal.inverse_(tmp)) * self.decimal.scaling)
                         dr = dr - tmp
 
                 ur = ur.reshape(*ul.shape, 1)

@@ -20,6 +20,7 @@ parser.add_argument("-folder", default=None, help="Path to load the trained mode
 parser.add_argument("-deltaDepth", type=int, default=1, help="wavelet depth")
 parser.add_argument("-best", action='store_false', help="if load the best model")
 parser.add_argument("-img", default='./etc/lena512color.tiff', help="the img path")
+parser.add_argument("-target", default='original', help="which target")
 
 args = parser.parse_args()
 
@@ -63,6 +64,8 @@ if args.img != 'target':
         IMG = utils.rgb2ycc(IMG, True, True)
 
 else:
+    if args.target != 'original':
+        target = args.target
 
     if HUE:
         lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
@@ -172,9 +175,9 @@ else:
 z, _ = f.inverse(IMG)
 
 if 'simplePrior_False' in name:
-    zerosCore = ftmp.inference(torch.round(decimal.forward_(loadedF.prior.lastPrior.mean[0].reshape(1, 3, 2, 2))), int(math.log(targetSize[-1], 2)) - args.deltaDepth, startDepth=1)
+    zerosCore = ftmp.inference(decimal.forward_(loadedF.prior.lastPrior.mean[0].reshape(1, 3, 2, 2)), int(math.log(targetSize[-1], 2)) - args.deltaDepth, startDepth=1)
 else:
-    zerosCore = ftmp.inference(torch.round(decimal.forward_(loadedF.prior.priorList[-1].mean[0].reshape(1, 3, 2, 2))), int(math.log(targetSize[-1], 2)) - args.deltaDepth, startDepth=1)
+    zerosCore = ftmp.inference(decimal.forward_(loadedF.prior.priorList[-1].mean[0].reshape(1, 3, 2, 2)), int(math.log(targetSize[-1], 2)) - args.deltaDepth, startDepth=1)
 
 
 def fftplot(img):
@@ -245,9 +248,9 @@ highul = zerosCore
 
 for no in reversed(range(args.deltaDepth)):
     if meanNNlist is not None:
-        zeroDetails = torch.round(decimal.forward_(reform(loadedF.meanNNlist[0](decimal.inverse_(lowul))).contiguous()))
+        zeroDetails = decimal.forward_(reform(loadedF.meanNNlist[0](decimal.inverse_(lowul))).contiguous())
     else:
-        zeroDetails = torch.round(decimal.forward_(loadedF.prior.priorList[0].mean.reshape(1, 3, 1, 3).repeat(lowul.shape[0], 1, np.prod(lowul.shape[-2:]), 3)).contiguous())
+        zeroDetails = decimal.forward_(loadedF.prior.priorList[0].mean.reshape(1, 3, 1, 3).repeat(lowul.shape[0], 1, np.prod(lowul.shape[-2:]), 3)).contiguous()
     ur = zeroDetails[:, :, :, 0].reshape(*lowul.shape, 1)
     dl = zeroDetails[:, :, :, 1].reshape(*lowul.shape, 1)
     dr = zeroDetails[:, :, :, 2].reshape(*lowul.shape, 1)
@@ -279,8 +282,7 @@ matplotlib.image.imsave(rootFolder + 'pic/high.png', (back01(highIMG) * 255).int
 '''
 plt.figure()
 plt.imshow(IMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy())
-plt.axis('off')
-plt.savefig(rootFolder + 'pic/original.png', bbox_inches="tight", pad_inches=0)
+plt.axis('off')plt.savefig(rootFolder + 'pic/original.png', bbox_inches="tight", pad_inches=0)
 plt.figure()
 plt.imshow(lowIMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy())
 plt.axis('off')
@@ -291,21 +293,20 @@ plt.axis('off')
 plt.savefig(rootFolder + 'pic/high.png', bbox_inches="tight", pad_inches=0)
 '''
 
-ff = fftplot(IMG.reshape(IMG.shape[1:]).permute([1, 2, 0]).detach().numpy())
-lowff = fftplot(lowIMG.reshape(lowIMG.shape[1:]).permute([1, 2, 0]).detach().numpy())
-highff = fftplot(highIMG.reshape(highIMG.shape[1:]).permute([1, 2, 0]).detach().numpy())
-
 
 def rgb2gray(rgb):
     return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
 
+ff = fftplot(rgb2gray(IMG.reshape(IMG.shape[1:]).permute([1, 2, 0]).detach().numpy()))
+lowff = fftplot(rgb2gray(lowIMG.reshape(lowIMG.shape[1:]).permute([1, 2, 0]).detach().numpy()))
+highff = fftplot(rgb2gray(highIMG.reshape(highIMG.shape[1:]).permute([1, 2, 0]).detach().numpy()))
+
+'''
 ff = rgb2gray(ff)
 lowff = rgb2gray(lowff)
 highff = rgb2gray(highff)
-
-
 '''
-'''
+
 X = np.arange(0, blockLength, 1)
 Y = np.arange(0, blockLength, 1)
 X, Y = np.meshgrid(X, Y)
@@ -314,9 +315,9 @@ plt.rc('font', size=12)
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 surf = ax.plot_surface(X, Y, ff, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.view_init(elev=15., azim=-75)
-plt.xticks([0, 16, 32, 46, 64], [-32, -16, 0, 16, 32])
-plt.yticks([0, 16, 32, 46, 64], [-32, -16, 0, 16, 32])
+ax.view_init(elev=30., azim=-60)
+plt.xticks([0, int(blockLength / 4), int(2 * blockLength / 4), int(3 * blockLength / 4), blockLength], [-blockLength // 4, -blockLength // 2, 0, blockLength // 4, blockLength // 2])
+plt.yticks([0, int(blockLength / 4), int(2 * blockLength / 4), int(3 * blockLength / 4), blockLength], [-blockLength // 4, -blockLength // 2, 0, blockLength // 4, blockLength // 2])
 
 #ax.set_zlabel('FFT_2D', fontsize=10)
 
@@ -325,9 +326,9 @@ plt.savefig(rootFolder + 'pic/originalFFT.pdf', bbox_inches="tight", pad_inches=
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 surf = ax.plot_surface(X, Y, lowff, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.view_init(elev=15., azim=-75)
-plt.xticks([0, 16, 32, 46, 64], [-32, -16, 0, 16, 32])
-plt.yticks([0, 16, 32, 46, 64], [-32, -16, 0, 16, 32])
+ax.view_init(elev=30., azim=-60)
+plt.xticks([0, int(blockLength / 4), int(2 * blockLength / 4), int(3 * blockLength / 4), blockLength], [-blockLength // 4, -blockLength // 2, 0, blockLength // 4, blockLength // 2])
+plt.yticks([0, int(blockLength / 4), int(2 * blockLength / 4), int(3 * blockLength / 4), blockLength], [-blockLength // 4, -blockLength // 2, 0, blockLength // 4, blockLength // 2])
 
 #ax.set_zlabel('FFT_2D', fontsize=10)
 
@@ -336,9 +337,9 @@ plt.savefig(rootFolder + 'pic/lowFFT.pdf', bbox_inches="tight", pad_inches=0, dp
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 surf = ax.plot_surface(X, Y, highff, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.view_init(elev=15., azim=-75)
-plt.xticks([0, 16, 32, 46, 64], [-32, -16, 0, 16, 32])
-plt.yticks([0, 16, 32, 46, 64], [-32, -16, 0, 16, 32])
+ax.view_init(elev=30., azim=-60)
+plt.xticks([0, int(blockLength / 4), int(2 * blockLength / 4), int(3 * blockLength / 4), blockLength], [-blockLength // 4, -blockLength // 2, 0, blockLength // 4, blockLength // 2])
+plt.yticks([0, int(blockLength / 4), int(2 * blockLength / 4), int(3 * blockLength / 4), blockLength], [-blockLength // 4, -blockLength // 2, 0, blockLength // 4, blockLength // 2])
 
 #ax.set_zlabel('FFT_2D', fontsize=10)
 
