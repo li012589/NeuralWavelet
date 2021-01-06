@@ -175,7 +175,7 @@ else:
 z, _ = f.inverse(IMG)
 
 if 'simplePrior_False' in name:
-    zerosCore = ftmp.inference(decimal.forward_(loadedF.prior.lastPrior.mean[0].reshape(1, 3, 2, 2)), int(math.log(targetSize[-1], 2)) - args.deltaDepth, startDepth=1)
+    zerosCore = ftmp.inference(decimal.forward_(loadedF.prior.lastPrior.mean.mean(0, keepdim=True).reshape(1, 3, 2, 2)), int(math.log(targetSize[-1], 2)) - args.deltaDepth, startDepth=1)
 else:
     zerosCore = ftmp.inference(decimal.forward_(loadedF.prior.priorList[-1].mean[0].reshape(1, 3, 2, 2)), int(math.log(targetSize[-1], 2)) - args.deltaDepth, startDepth=1)
 
