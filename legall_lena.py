@@ -217,6 +217,7 @@ def reform(tensor):
 def back01(tensor):
     ten = tensor.clone().float()
     ten = ten.view(ten.shape[0] * ten.shape[1], -1)
+    ten -= ten.mean(1, keepdim=True)
     ten -= ten.min(1, keepdim=True)[0]
     ten /= ten.max(1, keepdim=True)[0]
     ten = ten.view(tensor.shape)
@@ -243,8 +244,14 @@ for _ in range(args.deltaDepth):
 ul = renormFn(ul)
 
 lowul = ul
-highul = zerosCore
+#highul = zerosCore
+highul = ul.mean() * torch.ones_like(zerosCore)
+#highul = torch.zeros_like(ul)
 
+# Now script only works for depth == 1
+assert args.deltaDepth == 1
+
+shrink = torch.nn.Hardshrink(120)
 
 for no in reversed(range(args.deltaDepth)):
     if meanNNlist is not None:
@@ -260,9 +267,16 @@ for no in reversed(range(args.deltaDepth)):
     lowul = grp2im(_x).contiguous()
 
 for no in reversed(range(args.deltaDepth)):
-    ur = UR[no].reshape(*highul.shape, 1)
-    dl = DL[no].reshape(*highul.shape, 1)
-    dr = DR[no].reshape(*highul.shape, 1)
+    '''
+    ur = shrink(UR[no].reshape(*highul.shape, 1) - zeroDetails[:, :, :, 0].reshape(*highul.shape, 1)) + zeroDetails[:, :, :, 0].reshape(*highul.shape, 1)
+    dl = shrink(DL[no].reshape(*highul.shape, 1) - zeroDetails[:, :, :, 1].reshape(*highul.shape, 1)) + zeroDetails[:, :, :, 1].reshape(*highul.shape, 1)
+    dr = shrink(DR[no].reshape(*highul.shape, 1) - zeroDetails[:, :, :, 2].reshape(*highul.shape, 1)) + zeroDetails[:, :, :, 2].reshape(*highul.shape, 1)
+    '''
+
+    ur = shrink(UR[no].reshape(*highul.shape, 1))
+    dl = shrink(DL[no].reshape(*highul.shape, 1))
+    dr = shrink(DR[no].reshape(*highul.shape, 1))
+
     highul = highul.reshape(*highul.shape, 1)
 
     _x = torch.cat([highul, ur, dl, dr], -1).reshape(*highul.shape[:2], -1, 4)
@@ -275,37 +289,35 @@ if not HUE:
     lowIMG = utils.ycc2rgb(lowIMG, True, True)
     highIMG = utils.ycc2rgb(highIMG, True, True)
 
-matplotlib.image.imsave(rootFolder + 'pic/original.png', IMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy().astype('uint8'))
-matplotlib.image.imsave(rootFolder + 'pic/low.png', (back01(lowIMG) * 255).int().reshape(targetSize).permute([1, 2, 0]).detach().numpy().astype('uint8'))
-matplotlib.image.imsave(rootFolder + 'pic/high.png', (back01(highIMG) * 255).int().reshape(targetSize).permute([1, 2, 0]).detach().numpy().astype('uint8'))
-
-'''
-plt.figure()
-plt.imshow(IMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy())
-plt.axis('off')plt.savefig(rootFolder + 'pic/original.png', bbox_inches="tight", pad_inches=0)
-plt.figure()
-plt.imshow(lowIMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy())
-plt.axis('off')
-plt.savefig(rootFolder + 'pic/low.png', bbox_inches="tight", pad_inches=0)
-plt.figure()
-plt.imshow(highIMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy())
-plt.axis('off')
-plt.savefig(rootFolder + 'pic/high.png', bbox_inches="tight", pad_inches=0)
-'''
-
 
 def rgb2gray(rgb):
     return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
 
-ff = fftplot(rgb2gray(IMG.reshape(IMG.shape[1:]).permute([1, 2, 0]).detach().numpy()))
-lowff = fftplot(rgb2gray(lowIMG.reshape(lowIMG.shape[1:]).permute([1, 2, 0]).detach().numpy()))
-highff = fftplot(rgb2gray(highIMG.reshape(highIMG.shape[1:]).permute([1, 2, 0]).detach().numpy()))
+
+highIMG = (back01(highIMG) * 255).reshape(targetSize).permute([1, 2, 0]).detach().numpy()
+contour = rgb2gray(highIMG)
+#contour = contour - contour.mean()
+contour -= contour.min()
+contour /= contour.max()
+contour *= 255
+
+matplotlib.image.imsave(rootFolder + 'pic/original.png', IMG.int().detach().reshape(targetSize).permute([1, 2, 0]).numpy().astype('uint8'))
+matplotlib.image.imsave(rootFolder + 'pic/low.png', (back01(lowIMG) * 255).int().reshape(targetSize).permute([1, 2, 0]).detach().numpy().astype('uint8'))
+matplotlib.image.imsave(rootFolder + 'pic/high.png', highIMG.astype('uint8'))
+matplotlib.image.imsave(rootFolder + 'pic/contour.png', contour.astype('uint8'), cmap='gray')
+
 
 '''
-ff = rgb2gray(ff)
-lowff = rgb2gray(lowff)
-highff = rgb2gray(highff)
-'''
+ff = fftplot(rgb2gray(IMG.reshape(IMG.shape[1:]).permute([1, 2, 0]).detach().numpy()))
+lowff = fftplot(rgb2gray(lowIMG.reshape(lowIMG.shape[1:]).permute([1, 2, 0]).detach().numpy()))
+grayHigh = rgb2gray(highIMG.reshape(highIMG.shape[1:]).permute([1, 2, 0]).detach().numpy())
+highff = fftplot(grayHigh)
+
+highfixff = fftplot(grayHigh - grayHigh.mean())
+#highfixff = fftplot(rgb2gray((back01(highIMG) * 255).reshape(targetSize).permute([1, 2, 0]).detach().numpy()))
+
+import pdb
+pdb.set_trace()
 
 X = np.arange(0, blockLength, 1)
 Y = np.arange(0, blockLength, 1)
@@ -344,6 +356,18 @@ plt.yticks([0, int(blockLength / 4), int(2 * blockLength / 4), int(3 * blockLeng
 #ax.set_zlabel('FFT_2D', fontsize=10)
 
 plt.savefig(rootFolder + 'pic/highFFT.pdf', bbox_inches="tight", pad_inches=0, dpi=300)
+
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+surf = ax.plot_surface(X, Y, highfixff, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+ax.view_init(elev=30., azim=-60)
+plt.xticks([0, int(blockLength / 4), int(2 * blockLength / 4), int(3 * blockLength / 4), blockLength], [-blockLength // 4, -blockLength // 2, 0, blockLength // 4, blockLength // 2])
+plt.yticks([0, int(blockLength / 4), int(2 * blockLength / 4), int(3 * blockLength / 4), blockLength], [-blockLength // 4, -blockLength // 2, 0, blockLength // 4, blockLength // 2])
+
+#ax.set_zlabel('FFT_2D', fontsize=10)
+
+plt.savefig(rootFolder + 'pic/highFixFFT.pdf', bbox_inches="tight", pad_inches=0, dpi=300)
+'''
 
 # Customize the z axis.
 #ax.set_zlim(-1.01, 1.01)
