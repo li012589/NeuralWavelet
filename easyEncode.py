@@ -241,9 +241,8 @@ def calCDF():
         CDF.append(cdf2int(cdf).reshape(args.nbins, batch, -1))
 
     bins = _bins - 1 + (decimal.forward_(f.prior.lastPrior.mean.permute([1, 2, 3, 0])) * f.prior.lastPrior.mixing).sum(-1).reshape(1, *f.prior.lastPrior.mean.shape[1:]).int()
-    cdf = cdfMixDiscreteLogistic(bins, f.prior.lastPrior.mean, f.prior.lastPrior.logscale, f.prior.lastPrior.mixing, decimal=f.decimal).repeat(1, 200, 1, 1, 1)
+    cdf = cdfMixDiscreteLogistic(bins, f.prior.lastPrior.mean, f.prior.lastPrior.logscale, f.prior.lastPrior.mixing, decimal=f.decimal).repeat(1, batch, 1, 1, 1)
     CDF.append(cdf2int(cdf).reshape(args.nbins, batch, -1))
-
     CDF = torch.cat(CDF, -1).numpy()
     return CDF
 
