@@ -3,9 +3,7 @@ import numpy as np
 
 from . import rans
 
-precision = 24
-
-def encoder(CDF, symbol, state):
+def encoder(CDF, symbol, state, precision=24):
 
     def statfun_encode(s):
         return CDF[s], CDF[s + 1] - CDF[s]
@@ -13,7 +11,7 @@ def encoder(CDF, symbol, state):
     state = rans.append_symbol(statfun_encode, precision)(state, symbol)
     return state
 
-def decoder(CDF, state):
+def decoder(CDF, state, precision=24):
 
     def statfun_decode(cdf):
         # Search such that CDF[s-1] <= cdf < CDF[s]
