@@ -198,10 +198,11 @@ def divide(z):
     ul = z
     for no in range(int(math.log(blockLength, 2))):
         if no == int(math.log(blockLength, 2)) - 1:
-            z_ = ul.reshape(*ul.shape[:2], 1, 4) - (decimal.forward_(f.prior.lastPrior.mean.permute([1, 2, 3, 0])) * torch.softmax(f.prior.lastPrior.mixing, -1)).sum(-1).reshape(1, *f.prior.lastPrior.mean.shape[1:]).int() + args.nbins // 2
+            z_ = ul.reshape(*ul.shape[:2], 1, 4) - torch.round(decimal.forward_(f.prior.lastPrior.mean.permute([1, 2, 3, 0])) * torch.softmax(f.prior.lastPrior.mixing, dim=-1)).sum(-1).reshape(1, *f.prior.lastPrior.mean.shape[1:]) + args.nbins // 2
+
         else:
             _x = im2grp(ul)
-            z_ = _x[:, :, :, 1:].contiguous() - decimal.forward_(f.meanList[no]).int() + args.nbins // 2
+            z_ = _x[:, :, :, 1:].contiguous() - torch.round(decimal.forward_(f.meanList[no])) + args.nbins // 2
             ul = _x[:, :, :, 0].reshape(*_x.shape[:2], int(_x.shape[2] ** 0.5), int(_x.shape[2] ** 0.5)).contiguous()
         parts.append(z_.reshape(z_.shape[0], -1).int().detach())
     return torch.cat(parts, -1).numpy()
@@ -214,9 +215,9 @@ def join(rcnZ):
         rcnZ = rcnZ[:, np.prod(shapeList[no]):]
 
         if no == int(math.log(blockLength, 2)) - 1:
-            rcnZpart = rcnZpart + (decimal.forward_(f.prior.lastPrior.mean.permute([1, 2, 3, 0])) * torch.softmax(f.prior.lastPrior.mixing, -1)).sum(-1).reshape(1, *f.prior.lastPrior.mean.shape[1:]).int() - args.nbins // 2
+            rcnZpart = rcnZpart + torch.round(decimal.forward_(f.prior.lastPrior.mean.permute([1, 2, 3, 0])) * torch.softmax(f.prior.lastPrior.mixing, dim=-1)).sum(-1).reshape(1, *f.prior.lastPrior.mean.shape[1:]) - args.nbins // 2
         else:
-            rcnZpart = rcnZpart + decimal.forward_(f.meanList[no]).int() - args.nbins // 2
+            rcnZpart = rcnZpart + torch.round(decimal.forward_(f.meanList[no])) - args.nbins // 2
         zparts.append(rcnZpart)
 
     retZ = grp2im(zparts[-1]).contiguous()
@@ -236,15 +237,31 @@ def calCDF():
     CDF = []
     _bins = torch.arange(-args.nbins // 2, args.nbins // 2).reshape(-1, 1, 1, 1, 1)
     for no, mean in enumerate(f.meanList):
-        bins = _bins - 1 + decimal.forward_(mean).int()
+        bins = _bins - 1 + torch.round(decimal.forward_(mean))
         cdf = cdfDiscreteLogitstic(bins, mean, f.scaleList[no], decimal=f.decimal)
         CDF.append(cdf2int(cdf).reshape(args.nbins, batch, -1))
 
-    bins = _bins - 1 + (decimal.forward_(f.prior.lastPrior.mean.permute([1, 2, 3, 0])) * f.prior.lastPrior.mixing).sum(-1).reshape(1, *f.prior.lastPrior.mean.shape[1:]).int()
+    bins = _bins - 1 + torch.round(decimal.forward_(f.prior.lastPrior.mean.permute([1, 2, 3, 0])) * torch.softmax(f.prior.lastPrior.mixing, dim=-1)).sum(-1).reshape(1, *f.prior.lastPrior.mean.shape[1:])
     cdf = cdfMixDiscreteLogistic(bins, f.prior.lastPrior.mean, f.prior.lastPrior.logscale, f.prior.lastPrior.mixing, decimal=f.decimal).repeat(1, batch, 1, 1, 1)
     CDF.append(cdf2int(cdf).reshape(args.nbins, batch, -1))
     CDF = torch.cat(CDF, -1).numpy()
     return CDF
+
+
+def calPDF(state, CDF):
+    sumprob = 0
+    for i in range(state.shape[0]):
+        logprob = np.log((CDF[:, i][state[i] + 1] - CDF[:, i][state[i]]) / (1 << args.precision))
+        sumprob += logprob
+    return -sumprob
+
+
+def calsinglePDF(state, CDF):
+    probs = []
+    for no in range(state.shape[0]):
+        prob_ = np.log((CDF[state[no] + 1, no] - CDF[state[no], no]) / (1 << args.precision))
+        probs.append(prob_)
+    return np.array(probs)
 
 
 def testBPD(loader, earlyStop=-1):
@@ -277,9 +294,19 @@ def testBPD(loader, earlyStop=-1):
                 s = rans.x_init
                 for j in reversed(range(symbols.shape[-1])):
                     cdf = CDF[:, i, j]
-                    s = coder.encoder(cdf, symbols[j], s)
+                    s = coder.encoder(cdf, symbols[j], s, precision=args.precision)
                 state.append(rans.flatten(s))
 
+            def compare(idx):
+                print(calPDF(zparts[idx], CDF[:, idx, :]) / (np.prod(samples.shape[1:]) * np.log(2.)))
+                print(-f.logProbability(samples[idx:idx + 1]) / (np.prod(samples.shape[1:]) * np.log(2.)))
+                print(32 / (np.prod(samples.shape[1:])) * (state[idx]).shape[0])
+
+            '''
+            compare(0)
+            import pdb
+            pdb.set_trace()
+            '''
             actualBPD.append(32 / (np.prod(samples.shape[1:])) * np.mean([s.shape[0] for s in state]))
             theoryBPD.append((-f.logProbability(samples).mean() / (np.prod(samples.shape[1:]) * np.log(2.))).detach().item())
 
@@ -289,7 +316,7 @@ def testBPD(loader, earlyStop=-1):
                 symbols = []
                 for j in range(np.prod(targetSize)):
                     cdf = CDF[:, i, j]
-                    s, rcnSymbol = coder.decoder(cdf, s)
+                    s, rcnSymbol = coder.decoder(cdf, s, precision=args.precision)
                     symbols.append(rcnSymbol)
                 rcnParts.append(torch.tensor(symbols).reshape(1, -1))
             rcnParts = torch.cat(rcnParts, 0)

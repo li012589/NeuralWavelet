@@ -1,3 +1,8 @@
+
+import os
+import sys
+sys.path.append(os.getcwd())
+
 import numpy as np
 import torch
 import flow
@@ -122,5 +127,5 @@ def test_mixDixLogisticCDF():
 
 if __name__ == "__main__":
 
-    #test_disLogisticCDF()
+    test_disLogisticCDF()
     test_mixDixLogisticCDF()
