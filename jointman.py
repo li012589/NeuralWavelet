@@ -20,6 +20,7 @@ group.add_argument("-hchnl", type=int, default=12, help="intermediate channel di
 group.add_argument("-nhidden", type=int, default=1, help="num of intermediate channel of Conv2d inside NICE inside MERA")
 group.add_argument("-nMixing", type=int, default=5, help="num of mixing distributions of last sub-priors")
 group.add_argument("-simplePrior", action="store_true", help="if use simple version prior, no crossover")
+group.add_argument("-HUE", action="store_false", help="use YCbCr color scheme")
 group.add_argument("-clamp", type=float, default=-1, help="clamp of last prior's mean")
 
 group = parser.add_argument_group('Learning  parameters')
@@ -27,6 +28,7 @@ group.add_argument("-epoch", type=int, default=400, help="num of epoches to trai
 group.add_argument("-batch", type=int, default=200, help="batch size")
 group.add_argument("-savePeriod", type=int, default=10, help="save after how many steps")
 group.add_argument("-lr", type=float, default=0.001, help="learning rate")
+group.add_argument("-decay", type=float, default=0.99, help="learning rate")
 
 group = parser.add_argument_group("Etc")
 group.add_argument("-folder", default=None, help="Path to save")
@@ -39,7 +41,7 @@ device = torch.device("cpu" if args.cuda < 0 else "cuda:" + str(args.cuda))
 
 # Creating save folder
 if args.folder is None:
-    rootFolder = './opt/default_easyMera_' + 'joinData' + "_simplePrior_" + str(args.simplePrior) + "_repeat_" + str(args.repeat) + "_hchnl_" + str(args.hchnl) + "_nhidden_" + str(args.nhidden) + "_nMixing_" + str(args.nMixing) + "_clamp_" + str(args.clamp) + "/"
+    rootFolder = './opt/default_easyMera_' + 'joinData' + "_YCC_" + str(args.HUE) + "_simplePrior_" + str(args.simplePrior) + "_repeat_" + str(args.repeat) + "_hchnl_" + str(args.hchnl) + "_nhidden_" + str(args.nhidden) + "_nMixing_" + str(args.nMixing) + "_clamp_" + str(args.clamp) + "/"
     print("No specified saving path, using", rootFolder)
 else:
     rootFolder = args.folder
@@ -62,8 +64,9 @@ if not args.load:
     simplePrior = args.simplePrior
     clamp = args.clamp
     lr = args.lr
+    HUE = args.HUE
     with open(rootFolder + "/parameter.json", "w") as f:
-        config = {'target': 'join', 'repeat': repeat, 'hchnl': hchnl, 'nhidden': nhidden, 'nMixing': nMixing, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr, 'simplePrior': simplePrior, 'clamp': clamp}
+        config = {'target': 'join', 'repeat': repeat, 'hchnl': hchnl, 'nhidden': nhidden, 'nMixing': nMixing, 'epoch': epoch, 'batch': batch, 'savePeriod': savePeriod, 'lr': lr, 'simplePrior': simplePrior, 'clamp': clamp, 'HUE': HUE}
         json.dump(config, f)
 else:
     # load saved parameters, and decoding them to mem
@@ -71,8 +74,12 @@ else:
         config = json.load(f)
         locals().update(config)
 
+if HUE:
+    lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
+else:
+    lambd = lambda x: utils.rgb2ycc((x * 255).byte().float(), True).to(torch.float32).to(device)
 
-lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
+#lambd = lambda x: (x * 255).byte().to(torch.float32).to(device)
 trainsetTransform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Lambda(lambd)])
 
 trainTarget0 = torchvision.datasets.CIFAR10(root='./data/cifar', train=True, download=True, transform=trainsetTransform)
@@ -220,7 +227,7 @@ def plotfn(f, train, test, LOSS, VALLOSS):
     plt.close()
 
 # Training
-f = train.forwardKLD(f, joinTargetTrainLoader, joinTargetTestLoader, epoch, lr, savePeriod, rootFolder, plotfn=plotfn)
+f = train.forwardKLD(f, joinTargetTrainLoader, joinTargetTestLoader, epoch, lr, savePeriod, rootFolder, plotfn=plotfn, lr_decay=args.decay)
 
 # Pasuse
 import pdb
