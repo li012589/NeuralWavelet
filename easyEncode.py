@@ -297,12 +297,12 @@ def testBPD(loader, earlyStop=-1):
                     s = coder.encoder(cdf, symbols[j], s, precision=args.precision)
                 state.append(rans.flatten(s))
 
+            '''
             def compare(idx):
                 print(calPDF(zparts[idx], CDF[:, idx, :]) / (np.prod(samples.shape[1:]) * np.log(2.)))
                 print(-f.logProbability(samples[idx:idx + 1]) / (np.prod(samples.shape[1:]) * np.log(2.)))
                 print(32 / (np.prod(samples.shape[1:])) * (state[idx]).shape[0])
 
-            '''
             compare(0)
             import pdb
             pdb.set_trace()
