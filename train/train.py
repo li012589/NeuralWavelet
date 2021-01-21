@@ -80,14 +80,6 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
         # step the optimizer scheduler
         scheduler.step()
 
-        # feedback
-        print("Train time:", trainTime)
-        print("Mean train loss:", trainLoss.mean(), "Mean vaildation loss:", testLoss.mean())
-        print("Mean train bpd:", meanTrainBpd, "Mean vaildation bpd:", meanTestBpd)
-        print("Best train loss:", min(LOSS), "Best vaildation loss:", min(VALLOSS))
-        print("Best train bdp:", min(trainBPD), "Best vaildation loss:", min(testBPD))
-        print("====================================================================")
-
         # select best model
         if trainLoss.mean() < bestTrainLoss:
             bestTrainLoss = trainLoss.mean()
@@ -95,6 +87,12 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
         if testLoss.mean() < bestTestLoss:
             bestTestLoss = testLoss.mean()
             torch.save(flow, rootFolder + 'best_TestLoss_model.saving')
+
+        # feedback
+        print("Train time:", trainTime)
+        print("Mean train bpd:", meanTrainBpd, "Mean vaildation bpd:", meanTestBpd)
+        print("Best train bdp:", bestTrainLoss, "Best vaildation loss:", bestTestLoss)
+        print("====================================================================")
 
         # save
         if e % savePeriod == 0:
