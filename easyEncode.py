@@ -120,10 +120,10 @@ elif target == "MNIST":
 else:
     raise Exception("No such target")
 
-if args.best:
-    name = max(glob.iglob(os.path.join(rootFolder, 'best_TestLoss_model.saving.saving')), key=os.path.getctime)
+if args.best and not args.valbest:
+    name = max(glob.iglob(os.path.join(rootFolder, 'best_TrainLoss_model.saving')), key=os.path.getctime)
 elif args.valbest:
-    name = max(glob.iglob(os.path.join(rootFolder, 'best_TrainLoss_model.saving.saving')), key=os.path.getctime)
+    name = max(glob.iglob(os.path.join(rootFolder, 'best_TestLoss_model.saving')), key=os.path.getctime)
 else:
     name = max(glob.iglob(os.path.join(rootFolder, 'savings', '*.saving')), key=os.path.getctime)
 
