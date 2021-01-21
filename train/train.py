@@ -88,6 +88,14 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
         print("Best train bdp:", min(trainBPD), "Best vaildation loss:", min(testBPD))
         print("====================================================================")
 
+        # select best model
+        if trainLoss.mean() < bestTrainLoss:
+            bestTrainLoss = trainLoss.mean()
+            torch.save(flow, rootFolder + 'best_TrainLoss_model.saving')
+        if testLoss.mean() < bestTestLoss:
+            bestTestLoss = testLoss.mean()
+            torch.save(flow, rootFolder + 'best_TestLoss_model.saving')
+
         # save
         if e % savePeriod == 0:
             torch.save(flow, rootFolder + 'savings/' + flow.name + "_epoch_" + str(e) + ".saving")
@@ -95,14 +103,6 @@ def forwardKLD(flow, trainLoader, testLoader, epoches, lr, savePeriod, rootFolde
             with h5py.File(rootFolder + "records/" + "LOSSES" + '.hdf5', 'w') as f:
                 f.create_dataset("LOSS", data=np.array(LOSS))
                 f.create_dataset("VALLOSS", data=np.array(VALLOSS))
-
-            # select best model
-            if trainLoss.mean() < bestTrainLoss:
-                bestTrainLoss = trainLoss.mean()
-                torch.save(flow, rootFolder + 'best_TrainLoss_model.saving')
-            if testLoss.mean() < bestTestLoss:
-                bestTestLoss = testLoss.mean()
-                torch.save(flow, rootFolder + 'best_TestLoss_model.saving')
 
             # plot
             if plotfn is not None:
