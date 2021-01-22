@@ -236,7 +236,7 @@ def cdf2int(cdf):
     return (cdf * ((1 << args.precision) - args.nbins)).int().detach() + torch.arange(args.nbins).reshape(-1, 1, 1, 1, 1)
 
 
-def calCDF():
+def calCDF(batch):
     CDF = []
     _bins = torch.arange(-args.nbins // 2, args.nbins // 2).reshape(-1, 1, 1, 1, 1)
     for no, mean in enumerate(f.meanList):
@@ -288,7 +288,7 @@ def testBPD(loader, earlyStop=-1):
 
             zparts = divide(z)
 
-            CDF = calCDF()
+            CDF = calCDF(samples.shape[0])
 
             state = []
 
