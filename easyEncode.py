@@ -355,6 +355,6 @@ def testBPD(loader, earlyStop=-1):
 
 
 print("Train Set:")
-testBPD(targetTrainLoader, earlyStop=args.earlyStop)
+#testBPD(targetTrainLoader, earlyStop=args.earlyStop)
 print("Test Set:")
 testBPD(targetTestLoader, earlyStop=args.earlyStop)
