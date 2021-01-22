@@ -292,7 +292,7 @@ def testBPD(loader, earlyStop=-1):
 
             state = []
 
-            for i in range(batch):
+            for i in range(samples.shape[0]):
                 symbols = zparts[i]
                 s = rans.x_init
                 for j in reversed(range(symbols.shape[-1])):
@@ -314,7 +314,7 @@ def testBPD(loader, earlyStop=-1):
             theoryBPD.append((-f.logProbability(samples).mean() / (np.prod(samples.shape[1:]) * np.log(2.))).detach().item())
 
             rcnParts = []
-            for i in range(batch):
+            for i in range(samples.shape[0]):
                 s = rans.unflatten(state[i])
                 symbols = []
                 for j in range(np.prod(targetSize)):
