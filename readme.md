@@ -75,33 +75,30 @@ python ./jointman.py -cuda 0 -epoch 600 -hchnl 350 -repeat 3 -nhidden 3
 ### Compression
 
 ```bash
-# Flow model compress method
 python ./encode.py -folder opt/default_easyMera_ImageNet64_YCC_True_simplePrior_False_repeat_2_hchnl_250_nhidden_2_nMixing_5_sameDetail_True_clamp_-1_heavy_False/
 ```
 
+This compress script can be also used to evaluate compression scores on datasets other than trained on.
+
 ```bash
-# Flow model migrate compress method
 python ./encode.py -target ImageNet32 -folder opt/default_easyMera_ImageNet64_YCC_True_simplePrior_False_repeat_2_hchnl_250_nhidden_2_nMixing_5_sameDetail_True_clamp_-1_heavy_False/
 ```
 
 ### Wavelet Transformation Plot
 
 ```bash
-# plot inplot of wavelet
 python ./waveletPlot.py -img ./etc/lena512color.tiff  -folder opt/default_easyMera_ImageNet64_YCC_True_simplePrior_False_repeat_2_hchnl_250_nhidden_2_nMixing_5_sameDetail_True_clamp_-1_heavy_False/
 ```
 
 ### Progressive Loading & Super-resolution
 
 ```bash
-# progressive loading and super resolution
 python ./progressive.py -folder opt/default_easyMera_ImageNet64_YCC_True_simplePrior_False_repeat_2_hchnl_250_nhidden_2_nMixing_5_sameDetail_True_clamp_-1_heavy_False/
 ```
 
 ### FIR Plot
 
 ```bash
-# FIR plot for wavelet kernal
 python ./FIR.py -folder opt/default_easyMera_ImageNet64_YCC_True_simplePrior_False_repeat_2_hchnl_250_nhidden_2_nMixing_5_sameDetail_True_clamp_-1_heavy_False/
 ```
 
