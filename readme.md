@@ -38,7 +38,7 @@ Figure 1. Progressive loading from 1/64, 1/16, and 1/4 original size back to the
 
 Figure 2. Plot (a) and (b) are frequency responses of learned low-pass filters and high-pass filters, respectively.
 
-![fir](/Users/lili/Documents/MySpace/NeuralWavelet/etc/fir.png)
+![fir](etc/fir.png)
 
 ## Usage
 
