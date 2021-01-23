@@ -245,13 +245,13 @@ ul = renormFn(ul)
 
 lowul = ul
 #highul = zerosCore
-highul = ul.mean() * torch.ones_like(zerosCore)
-#highul = torch.zeros_like(ul)
+#highul = ul.mean() * torch.ones_like(zerosCore)
+highul = torch.zeros_like(ul)
 
 # Now script only works for depth == 1
 assert args.deltaDepth == 1
 
-shrink = torch.nn.Hardshrink(120)
+shrink = torch.nn.Hardshrink(0)
 
 for no in reversed(range(args.deltaDepth)):
     if meanNNlist is not None:
@@ -267,15 +267,15 @@ for no in reversed(range(args.deltaDepth)):
     lowul = grp2im(_x).contiguous()
 
 for no in reversed(range(args.deltaDepth)):
+    ur = UR[no].reshape(*highul.shape, 1)
+    dl = DL[no].reshape(*highul.shape, 1)
+    dr = DR[no].reshape(*highul.shape, 1)
+
     '''
     ur = shrink(UR[no].reshape(*highul.shape, 1) - zeroDetails[:, :, :, 0].reshape(*highul.shape, 1)) + zeroDetails[:, :, :, 0].reshape(*highul.shape, 1)
     dl = shrink(DL[no].reshape(*highul.shape, 1) - zeroDetails[:, :, :, 1].reshape(*highul.shape, 1)) + zeroDetails[:, :, :, 1].reshape(*highul.shape, 1)
     dr = shrink(DR[no].reshape(*highul.shape, 1) - zeroDetails[:, :, :, 2].reshape(*highul.shape, 1)) + zeroDetails[:, :, :, 2].reshape(*highul.shape, 1)
     '''
-
-    ur = shrink(UR[no].reshape(*highul.shape, 1))
-    dl = shrink(DL[no].reshape(*highul.shape, 1))
-    dr = shrink(DR[no].reshape(*highul.shape, 1))
 
     highul = highul.reshape(*highul.shape, 1)
 
@@ -307,17 +307,14 @@ matplotlib.image.imsave(rootFolder + 'pic/high.png', highIMG.astype('uint8'))
 matplotlib.image.imsave(rootFolder + 'pic/contour.png', contour.astype('uint8'), cmap='gray')
 
 
-'''
+
 ff = fftplot(rgb2gray(IMG.reshape(IMG.shape[1:]).permute([1, 2, 0]).detach().numpy()))
 lowff = fftplot(rgb2gray(lowIMG.reshape(lowIMG.shape[1:]).permute([1, 2, 0]).detach().numpy()))
-grayHigh = rgb2gray(highIMG.reshape(highIMG.shape[1:]).permute([1, 2, 0]).detach().numpy())
+grayHigh = rgb2gray(highIMG)
 highff = fftplot(grayHigh)
 
-highfixff = fftplot(grayHigh - grayHigh.mean())
+highfixff = fftplot(contour)
 #highfixff = fftplot(rgb2gray((back01(highIMG) * 255).reshape(targetSize).permute([1, 2, 0]).detach().numpy()))
-
-import pdb
-pdb.set_trace()
 
 X = np.arange(0, blockLength, 1)
 Y = np.arange(0, blockLength, 1)
@@ -367,7 +364,7 @@ plt.yticks([0, int(blockLength / 4), int(2 * blockLength / 4), int(3 * blockLeng
 #ax.set_zlabel('FFT_2D', fontsize=10)
 
 plt.savefig(rootFolder + 'pic/highFixFFT.pdf', bbox_inches="tight", pad_inches=0, dpi=300)
-'''
+
 
 # Customize the z axis.
 #ax.set_zlim(-1.01, 1.01)
@@ -377,7 +374,7 @@ plt.savefig(rootFolder + 'pic/highFixFFT.pdf', bbox_inches="tight", pad_inches=0
 # Add a color bar which maps values to colors.
 #fig.colorbar(surf, shrink=0.5, aspect=5)
 
-'''
+
 import pdb
 pdb.set_trace()
 for no in reversed(range(args.depth)):
@@ -398,4 +395,4 @@ waveletAx = waveletPlot.add_subplot(111)
 waveletAx.imshow(zremain[0])
 
 plt.show()
-'''
+
