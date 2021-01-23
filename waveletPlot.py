@@ -18,7 +18,7 @@ parser = argparse.ArgumentParser(description="")
 
 parser.add_argument("-folder", default=None, help="Path to load the trained model")
 parser.add_argument("-cuda", type=int, default=-1, help="Which device to use with -1 standing for CPU, number bigger than -1 is N.O. of GPU.")
-parser.add_argument("-depth", type=int, default=2, help="wavelet depth")
+parser.add_argument("-depth", type=int, default=2, help="how many iterations to perform")
 parser.add_argument("-best", action='store_false', help="if load the best model")
 parser.add_argument("-epoch", type=int, default=-1, help="epoch to load")
 parser.add_argument("-img", default=None, help="the img path")

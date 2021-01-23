@@ -15,12 +15,12 @@ parser = argparse.ArgumentParser(description="")
 
 parser.add_argument("-folder", default=None, help="Path to load the trained model")
 parser.add_argument("-cuda", type=int, default=-1, help="Which device to use with -1 standing for CPU, number bigger than -1 is N.O. of GPU.")
-parser.add_argument("-nbins", type=int, default=4096, help="bin number of ran")
+parser.add_argument("-nbins", type=int, default=4096, help="bin number of ran alg.")
 parser.add_argument("-batch", type=int, default=-1, help="batch size")
 parser.add_argument("-precision", type=int, default=24, help="precision of CDF")
-parser.add_argument("-earlyStop", type=int, default=-1, help="fewer batch of testing")
+parser.add_argument("-earlyStop", type=int, default=-1, help="epoches to run")
 parser.add_argument("-best", action='store_false', help="if load the best model")
-parser.add_argument("-valbest", action='store_true', help="if load the best model")
+parser.add_argument("-valbest", action='store_true', help="if load the best val. model")
 parser.add_argument('-target', type=str, default='original', choices=['original', 'CIFAR', 'ImageNet32', 'ImageNet64', 'MNIST'], metavar='DATASET', help='Dataset choice.')
 
 

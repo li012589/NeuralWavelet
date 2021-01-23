@@ -18,7 +18,7 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 parser = argparse.ArgumentParser(description="")
 
 parser.add_argument("-folder", default=None, help="Path to load the trained model")
-parser.add_argument("-step", type=float, default=0.001, help="step of omega")
+parser.add_argument("-step", type=float, default=0.001, help="step of omega freq")
 parser.add_argument("-best", action='store_false', help="if load the best model")
 parser.add_argument('-target', type=str, default='original', choices=['original', 'CIFAR', 'ImageNet32', 'ImageNet64', 'MNIST'], metavar='DATASET', help='Dataset choice.')
 

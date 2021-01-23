@@ -15,10 +15,11 @@ group = parser.add_argument_group("Target Parameters")
 group.add_argument('-target', type=str, default='CIFAR', choices=['CIFAR', 'ImageNet32', 'ImageNet64', 'MNIST'], metavar='DATASET', help='Dataset choice.')
 
 group = parser.add_argument_group("Architecture Parameters")
-group.add_argument("-repeat", type=int, default=1, help="num of disentangler layers of each RG scale")
-group.add_argument("-hchnl", type=int, default=12, help="intermediate channel dimension of Conv1d inside NICE inside MERA")
-group.add_argument("-nhidden", type=int, default=1, help="num of intermediate channel of Conv1d inside NICE inside MERA")
+group.add_argument("-repeat", type=int, default=1, help="num of wavelet layers of each scale")
+group.add_argument("-hchnl", type=int, default=12, help="intermediate channel dimension of Conv1d inside NICE inside NeuralWavelet")
+group.add_argument("-nhidden", type=int, default=1, help="num of intermediate channel of Conv1d inside NICE inside NeuralWavelet")
 group.add_argument("-nMixing", type=int, default=5, help="num of mixing distributions of last sub-priors")
+group.add_argument("-simplePrior", action="store_true", help="if use simple version prior, no crossover net")
 
 group = parser.add_argument_group('Learning  parameters')
 group.add_argument('-init', type=str, default='harr', choices=['harr', 'legall'], metavar='initWavelet', help='which wavelet to init.')
@@ -26,7 +27,6 @@ group.add_argument("-epoch", type=int, default=400, help="num of epoches to trai
 group.add_argument("-batch", type=int, default=200, help="batch size")
 group.add_argument("-savePeriod", type=int, default=10, help="save after how many steps")
 group.add_argument("-lr", type=float, default=0.001, help="learning rate")
-group.add_argument("-simplePrior", action="store_true", help="if use simple version prior, no crossover")
 
 group = parser.add_argument_group("Etc")
 group.add_argument("-folder", default=None, help="Path to save")
