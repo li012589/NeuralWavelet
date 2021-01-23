@@ -1,6 +1,6 @@
 # Neural Wavelet Flow
 
-This repo provide code for the paper **Learning Non-linear Wavelet Transformation via Normalizing Flow**.
+This repo provides the original code for the paper **Learning Non-linear Wavelet Transformation via Normalizing Flow**. See a lite version of implementation at the [lite branch](https://github.com/li012589/NeuralWavelet).
 
 ## Intro
 
@@ -64,14 +64,12 @@ python ./FIR.py -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_
 
 ## Citation
 
-```
-@article{li2021neuralwavelet,
-title={Learning Non-linear Wavelet Transformation via Normalizing Flow}
-author={Li, Shuo-Hui}
-year = {2021},
-eprint = {arXiv:XXXX.XXXXX},
-}
-```
+>@article{li2021neuralwavelet,
+>title={Learning Non-linear Wavelet Transformation via Normalizing Flow}
+>author={Li, Shuo-Hui}
+>year = {2021},
+>eprint = {arXiv:XXXX.XXXXX},
+>}
 
 ## Contact
 
