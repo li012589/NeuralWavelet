@@ -36,7 +36,7 @@ Figure 2. Progressive loading from 1/64, 1/16, and 1/4 original size back to the
 
 ### ![proloading.pdf](etc/proloading.png)
 
-### FIR Plot
+### ![proloading2](etc/proloading2.png)FIR Plot
 
 Figure 3. Plot (a) and (b) are frequency responses of learned low-pass filters and high-pass filters, respectively.
 
@@ -44,10 +44,20 @@ Figure 3. Plot (a) and (b) are frequency responses of learned low-pass filters a
 
 ## Usage
 
+Generally. run ` python XXX.py --help` will print a detailed arguments description. And to install required libraries using
+
+```bash
+pip install -r requirements.txt
+```
+
+### Training
+
 ```shell
 # train
 python ./main.py -cuda 0 -epoch 600 -hchnl 350 -repeat 3 -nhidden 3 -target ImageNet32
 ```
+
+### Compression
 
 ```shell
 # Flow model compress method
@@ -59,15 +69,21 @@ python ./encode.py -batch 10 -earlyStop 5 -folder /Users/lili/Documents/MySpace/
 python ./encode.py -batch 10 -earlyStop 5 -target ImageNet64 -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
 ```
 
+### Wavelet Transformation Plot
+
 ```shell
 # plot inplot of wavelet
 python ./waveletPlot.py -img ./etc/lena512color.tiff  -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
 ```
 
+### Progressive Loading & Super-resolution
+
 ```shell
 # progressive loading and super resolution
 python ./progressive.py -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
 ```
+
+### FIR Plot
 
 ```shell
 # FIR plot for wavelet kernal
