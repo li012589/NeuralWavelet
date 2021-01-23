@@ -1,16 +1,22 @@
 # Neural Wavelet Flow
 
-This repo provides the original code for the paper **Learning Non-linear Wavelet Transformation via Normalizing Flow**. See a lite version of implementation at the [lite branch](https://github.com/li012589/NeuralWavelet).
+This repo provides the **original code** for the paper *Learning Non-linear Wavelet Transformation via Normalizing Flow* ([arXiv:XXXX.XXXXX](https://arxiv.org/)). See a lite and cleaner version of implementation at the [lite branch](https://github.com/li012589/NeuralWavelet).
 
 ## Intro
 
-Wavelet transformation stands as a cornerstone in modern data analysis and signal processing. Its mathematical essence is an invertible transformation that discerns slow patterns from fast patterns in the frequency domain, which repeats at each level. Such an invertible transformation can be learned by a designed normalizing flow model. With a factor-out scheme resembling the wavelet downsampling mechanism, a mutually independent prior, and parameter sharing along the depth of the network, one can train normalizing flow models to factor-out variables corresponding to fast patterns at different levels, thus extending linear wavelet transformations to non-linear learnable models. In this paper, a concrete way of building such flows is given. Then, a demonstration of the model’s ability in lossless compression task, progressive loading, and super-resolution (upsampling) task. Lastly, an analysis of the learned model in terms of low-pass/high-pass filters is given.
+Wavelet transformation stands as a cornerstone in modern data analysis and signal processing. Its mathematical essence is an invertible transformation that discerns slow patterns from fast patterns in the frequency domain, which repeats at each level. Such an invertible transformation can be learned by a designed normalizing flow model. With a factor-out scheme resembling the wavelet downsampling mechanism, a mutually independent prior, and parameter sharing along the depth of the network, one can train normalizing flow models to factor-out variables corresponding to fast patterns at different levels, thus extending linear wavelet transformations to non-linear learnable models. In this work, a concrete way of building such flows is given. Then, a demonstration of the model’s ability in lossless compression task, progressive loading, and super-resolution (upsampling) task. Lastly, an analysis of the learned model in terms of low-pass/high-pass filters is given.
 
 ## Results
 
+### Wavelet Transformation Plot
 
+### Compression Scores
 
-## How to
+### Progressive Loading & Super-resolution
+
+### FIR Plot
+
+## Usage
 
 ```shell
 # train
@@ -64,12 +70,14 @@ python ./FIR.py -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_
 
 ## Citation
 
->@article{li2021neuralwavelet,
->title={Learning Non-linear Wavelet Transformation via Normalizing Flow}
->author={Li, Shuo-Hui}
->year = {2021},
->eprint = {arXiv:XXXX.XXXXX},
->}
+```latex
+@article{li2021neuralwavelet,
+title={Learning Non-linear Wavelet Transformation via Normalizing Flow}
+author={Li, Shuo-Hui}
+year = {2021},
+eprint = {arXiv:XXXX.XXXXX},
+}
+```
 
 ## Contact
 
