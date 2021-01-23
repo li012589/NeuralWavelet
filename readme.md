@@ -63,7 +63,7 @@ python ./main.py -cuda 0 -epoch 600 -hchnl 350 -repeat 3 -nhidden 3 -target Imag
 To train using the 1st scheme defined in the paper:
 
 ```bash
-python ./oneTotwomain.py -cuda 0 -epoch 600 -hchnl 350 -repeat 3 -nhidden 3 -init legall -target ImageNet64
+python ./1DTo2Dmain.py -cuda 0 -epoch 600 -hchnl 350 -repeat 3 -nhidden 3 -init legall -target ImageNet64
 ```
 
 To train on the joint dataset:
