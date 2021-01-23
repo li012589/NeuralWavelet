@@ -12,7 +12,9 @@ Wavelet transformation stands as a cornerstone in modern data analysis and signa
 
 ### Compression Scores
 
-### Progressive Loading & Super-resolution
+### Progressive Loading & Super-resolution 
+
+### ![proloading.pdf](etc/proloading.pdf)
 
 ### FIR Plot
 
