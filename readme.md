@@ -10,7 +10,7 @@ Wavelet transformation stands as a cornerstone in modern data analysis and signa
 
 ### Wavelet Transformation Plot
 
-![waveletplot](/Users/lili/Documents/MySpace/NeuralWavelet/etc/waveletplot.png)
+![waveletplot](etc/waveletplot.png)
 
 ### Compression Scores
 
