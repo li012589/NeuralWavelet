@@ -50,7 +50,7 @@ Generally, run ` python XXX.py --help` will print a detailed arguments descripti
 pip install -r requirements.txt
 ```
 
-A demo saving is provided at `opt` folder, the following scripts will use this saving. All plot results will be outputed to the saving folder's `pic` folder.
+A demo saving is provided in `opt` folder, the following scripts will use this saving. All plot results will be output to the saving folder's `pic` folder.
 
 ### Training
 
