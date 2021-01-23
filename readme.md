@@ -44,52 +44,65 @@ Figure 3. Plot (a) and (b) are frequency responses of learned low-pass filters a
 
 ## Usage
 
-Generally, run ` python XXX.py --help` will print a detailed arguments description. And to install required libraries using
+Generally, run ` python XXX.py --help` will print a detailed arguments description. And to install required libraries, using
 
 ```bash
 pip install -r requirements.txt
 ```
 
-A demo saving is provided at `opt` folder, the following plots will use this saving.
+A demo saving is provided at `opt` folder, the following scripts will use this saving. All plot results will be outputed to the saving folder's `pic` folder.
 
 ### Training
 
+To train using the 2nd scheme defined in the paper:
+
 ```shell
-# train
-python ./main.py -cuda 0 -epoch 600 -hchnl 350 -repeat 3 -nhidden 3 -target ImageNet32
+python ./main.py -cuda 0 -epoch 600 -hchnl 350 -repeat 3 -nhidden 3 -target ImageNet64
+```
+
+To train using the 1st scheme defined in the paper:
+
+```bash
+python ./oneTotwomain.py -cuda 0 -epoch 600 -hchnl 350 -repeat 3 -nhidden 3 -init legall -target ImageNet64
+```
+
+To train on the joint dataset:
+
+```bash
+python ./jointman.py -cuda 0 -epoch 600 -hchnl 350 -repeat 3 -nhidden 3
 ```
 
 ### Compression
 
-```shell
+```bash
 # Flow model compress method
-python ./encode.py -batch 10 -earlyStop 5 -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
+python ./encode.py -folder opt/default_easyMera_ImageNet64_YCC_True_simplePrior_False_repeat_2_hchnl_250_nhidden_2_nMixing_5_sameDetail_True_clamp_-1_heavy_False/
 ```
 
-```shell
+```bash
 # Flow model migrate compress method
-python ./encode.py -batch 10 -earlyStop 5 -target ImageNet64 -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
+python ./encode.py -target ImageNet32 -folder opt/default_easyMera_ImageNet64_YCC_True_simplePrior_False_repeat_2_hchnl_250_nhidden_2_nMixing_5_sameDetail_True_clamp_-1_heavy_False/
 ```
 
 ### Wavelet Transformation Plot
 
-```shell
+```bash
 # plot inplot of wavelet
-python ./waveletPlot.py -img ./etc/lena512color.tiff  -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
+python ./waveletPlot.py -img ./etc/lena512color.tiff  -folder opt/default_easyMera_ImageNet64_YCC_True_simplePrior_False_repeat_2_hchnl_250_nhidden_2_nMixing_5_sameDetail_True_clamp_-1_heavy_False/
 ```
 
 ### Progressive Loading & Super-resolution
 
-```shell
+```bash
 # progressive loading and super resolution
-python ./progressive.py -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
+python ./progressive.py -folder opt/default_easyMera_ImageNet64_YCC_True_simplePrior_False_repeat_2_hchnl_250_nhidden_2_nMixing_5_sameDetail_True_clamp_-1_heavy_False/
 ```
 
 ### FIR Plot
 
-```shell
+```bash
 # FIR plot for wavelet kernal
-python ./FIR.py -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
+python ./FIR.py -folder opt/default_easyMera_ImageNet64_YCC_True_simplePrior_False_repeat_2_hchnl_250_nhidden_2_nMixing_5_sameDetail_True_clamp_-1_heavy_False/
 ```
 
 ## Citation
