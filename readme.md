@@ -12,9 +12,23 @@ Wavelet transformation stands as a cornerstone in modern data analysis and signa
 
 ### Compression Scores
 
+Table 1. Lossless compression scores(bits per dimension) on CIFAR-10, ImageNet32, ImageNet64.
+
+|             | CIFAR       | ImageNet32  | ImageNet64  |
+| ----------- | ----------- | ----------- | ----------- |
+| NWF         | 3.59 (3.58) | 4.02 (4.01) | 3.74 (3.73) |
+| NWF(in YCC) | 3.14 (3.12) | 3.53 (3.51) | 3.24 (3.24) |
+
+Table 2. Compression scores on different datasets than trained on. Scores are actual achieved BPDs.
+
+| Eval. on\Train on | ImageNet32 | ImageNet64 |
+| ----------------- | ---------- | ---------- |
+| ImageNet32        | 4.04       | 4.05       |
+| ImageNet64        | 3.77       | 3.74       |
+
 ### Progressive Loading & Super-resolution 
 
-### ![proloading.pdf](etc/proloading.pdf)
+### ![proloading.pdf](etc/proloading.png)
 
 ### FIR Plot
 
@@ -22,32 +36,22 @@ Wavelet transformation stands as a cornerstone in modern data analysis and signa
 
 ```shell
 # train
-python ./easymain.py -cuda 0 -epoch 600 -hchnl 350 -repeat 3 -nhidden 3 -target ImageNet32
+python ./main.py -cuda 0 -epoch 600 -hchnl 350 -repeat 3 -nhidden 3 -target ImageNet32
 ```
 
 ```shell
 # Flow model compress method
-python ./easyEncode.py -batch 10 -earlyStop 5 -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
+python ./encode.py -batch 10 -earlyStop 5 -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
 ```
 
 ```shell
 # Flow model migrate compress method
-python ./easyEncode.py -batch 10 -earlyStop 5 -target ImageNet64 -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
-```
-
-```shell
-# Freq migrate compress method
-python ./easyEncodeTrans.py -batch 10 -earlyStop 5 -target ImageNet32 -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
-```
-
-```shell
-# Freq migrate compress method
-python ./easyEncodeTrans.py -batch 10 -earlyStop 5 -target ImageNet64 -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
+python ./encode.py -batch 10 -earlyStop 5 -target ImageNet64 -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
 ```
 
 ```shell
 # plot inplot of wavelet
-python ./simpleBigWavelet.py -img ./etc/lena512color.tiff  -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
+python ./waveletPlot.py -img ./etc/lena512color.tiff  -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
 ```
 
 ```shell
@@ -56,18 +60,8 @@ python ./progressive.py -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/
 ```
 
 ```shell
-# 2d FFT plot for low/high pass
-python ./legall_lena.py -img target -deltaDepth 1 -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
-```
-
-```shell
 # FIR plot for wavelet kernal
 python ./FIR.py -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
-```
-
-```shell
-# Image generation 
- python ./easyGenerate.py -folder /Users/lili/Documents/MySpace/NeoNWL/opt/reoder/default_easyMera_ImageNet32_simplePrior_False_repeat_3_hchnl_350_nhidden_3_nMixing_5_sameDetail_True_clamp_-1_62efb58d8de7b1c7587776b9cb53cac2c741244a
 ```
 
 ## Citation
