@@ -1,0 +1,1 @@
+{"target": "ImageNet64", "repeat": 2, "hchnl": 250, "nhidden": 2, "nMixing": 5, "epoch": 800, "batch": 200, "savePeriod": 10, "lr": 0.001, "simplePrior": false, "diffDetail": true, "clamp": null, "heavy": false, "HUE": true}
