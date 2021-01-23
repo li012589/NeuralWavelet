@@ -10,6 +10,8 @@ Wavelet transformation stands as a cornerstone in modern data analysis and signa
 
 ### Wavelet Transformation Plot
 
+Figure 1. Two iterations of the learned wavelet transformation, normalizations are performed for each channel for visualization. The transformation is trained on the ImageNet64 dataset and evaluated on the Lena image(512×512).
+
 ![waveletplot](etc/waveletplot.png)
 
 ### Compression Scores
@@ -30,13 +32,13 @@ Table 2. Compression scores on different datasets than trained on. Scores are ac
 
 ### Progressive Loading & Super-resolution 
 
-Figure 1. Progressive loading from 1/64, 1/16, and 1/4 original size back to the original size. And super-resolution of original images to 4× and 16× size. The layout is diagramed in the first plot. The images marked with red are the original images. The original images are from ImageNet64, and the model is trained on it.
+Figure 2. Progressive loading from 1/64, 1/16, and 1/4 original size back to the original size. And super-resolution of original images to 4× and 16× size. The layout is diagramed in the first plot. The images marked with red are the original images. The original images are from ImageNet64, and the model is trained on it.
 
 ### ![proloading.pdf](etc/proloading.png)
 
 ### FIR Plot
 
-Figure 2. Plot (a) and (b) are frequency responses of learned low-pass filters and high-pass filters, respectively.
+Figure 3. Plot (a) and (b) are frequency responses of learned low-pass filters and high-pass filters, respectively.
 
 ![fir](etc/fir.png)
 
