@@ -44,11 +44,13 @@ Figure 3. Plot (a) and (b) are frequency responses of learned low-pass filters a
 
 ## Usage
 
-Generally. run ` python XXX.py --help` will print a detailed arguments description. And to install required libraries using
+Generally, run ` python XXX.py --help` will print a detailed arguments description. And to install required libraries using
 
 ```bash
 pip install -r requirements.txt
 ```
+
+A demo saving is provided at `opt` folder, the following plots will use this saving.
 
 ### Training
 
