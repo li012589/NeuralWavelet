@@ -40,7 +40,7 @@ Figure 2. Progressive loading from 1/64, 1/16, and 1/4 original size back to the
 
 Figure 3. Animations of progressice loading process.
 
-![progressive0](etc/progressive0.gif) ![progressive2](etc/progressive2.gif)![progresive3](etc/progressive3.gif)![progressive4](etc/progressive4.gif)![progressive1](etc/progressive1.gif)
+<img src="etc/progressive0.gif" width="140"/> <img src="etc/progressive4.gif" width="140"/><img src="etc/progressive3.gif" width="140"/><img src="etc/progressive1.gif" width="140"/> <img src="etc/progressive2.gif" width="140"/>
 
 ### FIR Plot
 
