@@ -36,9 +36,15 @@ Figure 2. Progressive loading from 1/64, 1/16, and 1/4 original size back to the
 
 ### ![proloading.pdf](etc/proloading.png)
 
-### ![proloading2](etc/proloading2.png)FIR Plot
+### ![proloading2](etc/proloading2.png)
 
-Figure 3. Plot (a) and (b) are frequency responses of learned low-pass filters and high-pass filters, respectively.
+Figure 3. Animations of progressice loading process.
+
+![progressive0](etc/progressive0.gif) ![progressive2](etc/progressive2.gif)![progresive3](etc/progressive3.gif)![progressive4](etc/progressive4.gif)![progressive1](etc/progressive1.gif)
+
+### FIR Plot
+
+Figure 4. Plot (a) and (b) are frequency responses of learned low-pass filters and high-pass filters, respectively.
 
 ![fir](etc/fir.png)
 
