@@ -28,7 +28,7 @@ Table 2. Compression scores on different datasets than trained on. Scores are ac
 | Eval. on\Train on | ImageNet32 | ImageNet64 |
 | ----------------- | ---------- | ---------- |
 | ImageNet32        | 4.02       | 4.05       |
-| ImageNet64        | 3.77       | 3.74       |
+| ImageNet64        | 3.75       | 3.74       |
 
 ### Progressive Loading & Super-resolution 
 
