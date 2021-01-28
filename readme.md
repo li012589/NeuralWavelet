@@ -1,6 +1,6 @@
 # Neural Wavelet Flow
 
-This repo provides the original code for the paper *Learning Non-linear Wavelet Transformation via Normalizing Flow* ([arXiv:XXXX.XXXXX](https://arxiv.org/)). See a lite and cleaner version of implementation at the [lite branch](https://github.com/li012589/NeuralWavelet/tree/lite).
+This repo provides the original code for the paper *Learning Non-linear Wavelet Transformation via Normalizing Flow* ([arXiv:2101.11306](https://arxiv.org/abs/2101.11306)). See a lite and cleaner version of implementation at the [lite branch](https://github.com/li012589/NeuralWavelet/tree/lite).
 
 ## Intro
 
@@ -115,7 +115,7 @@ python ./FIR.py -folder opt/default_easyMera_ImageNet64_YCC_True_simplePrior_Fal
 title={Learning Non-linear Wavelet Transformation via Normalizing Flow}
 author={Li, Shuo-Hui}
 year = {2021},
-eprint = {arXiv:XXXX.XXXXX},
+eprint = {arXiv:2101.11306},
 }
 ```
 
